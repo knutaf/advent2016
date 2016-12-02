@@ -17,28 +17,45 @@ type State = { history : Position list; pos : Position };;
 let MAX_X = 2;;
 let MAX_Y = 2;;
 
+let KEYPAD =
+    [|
+        [| Some '1'; Some '2'; Some '3' |];
+        [| Some '4'; Some '5'; Some '6' |];
+        [| Some '7'; Some '8'; Some '9' |];
+    |]
+;;
+
+let STARTING_POS = { x = 2; y = 2 };;
+
 let getKeyFromCoordinates pos =
-    match (pos.y, pos.x) with
-    | (0, 0) -> 1
-    | (0, 1) -> 2
-    | (0, 2) -> 3
-    | (1, 0) -> 4
-    | (1, 1) -> 5
-    | (1, 2) -> 6
-    | (2, 0) -> 7
-    | (2, 1) -> 8
-    | (2, 2) -> 9
-    | _ -> raise (Ex (sprintf "invalid coords: %d, %d" pos.x pos.y))
+    if pos.y >= 0 && pos.y < Array.length KEYPAD &&
+       pos.x >= 0 && pos.x < Array.length KEYPAD.[pos.y] then
+        KEYPAD.[pos.y].[pos.x]
+    else
+        None
+;;
+
+let getKeyCharFromCoordinates pos =
+    match getKeyFromCoordinates pos with
+    | None -> '?'
+    | Some k -> k
 ;;
 
 let makeMove pos moveChar =
     (*printfn "makeMove %A %c" pos moveChar;*)
-    match moveChar with
-    | 'U' -> if pos.y = 0 then pos else { x = pos.x; y = pos.y - 1 }
-    | 'D' -> if pos.y = MAX_Y then pos else { x = pos.x; y = pos.y + 1 }
-    | 'L' -> if pos.x = 0 then pos else { x = pos.x - 1; y = pos.y }
-    | 'R' -> if pos.x = MAX_X then pos else { x = pos.x + 1; y = pos.y }
-    | _ -> raise (Ex (sprintf "invalid move: %c" moveChar))
+    let nextPos =
+        match moveChar with
+        | 'U' -> { x = pos.x; y = pos.y - 1 }
+        | 'D' -> { x = pos.x; y = pos.y + 1 }
+        | 'L' -> { x = pos.x - 1; y = pos.y }
+        | 'R' -> { x = pos.x + 1; y = pos.y }
+        | _ -> raise (Ex (sprintf "invalid move: %c" moveChar))
+    in
+    let key = getKeyFromCoordinates nextPos in
+        match key with
+        | None -> pos
+        | Some k -> nextPos
+    ;
 ;;
 
 let rec processLine state =
@@ -52,6 +69,6 @@ let rec processLine state =
         processLine { history = List.append state.history [state.pos]; pos = nextPos }
 ;;
 
-let state = processLine { history = []; pos = { x = 1; y = 1 } } in
-List.iter (fun elem -> printf "%d" (getKeyFromCoordinates elem)) (List.tail state.history);
-printf "%d" (getKeyFromCoordinates state.pos);;
+let state = processLine { history = []; pos = STARTING_POS } in
+List.iter (fun elem -> printf "%c" (getKeyCharFromCoordinates elem)) (List.tail state.history);
+printf "%c" (getKeyCharFromCoordinates state.pos);;
