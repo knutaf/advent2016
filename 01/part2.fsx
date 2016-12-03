@@ -43,6 +43,38 @@ let parseMove str =
     { turnDir = turnDir; spaces = Convert.ToInt32 spacesStr }
 ;;
 
+let isPerpendicularTo dir1 dir2 =
+    let check dir1 dir2 =
+        ((dir1 = North || dir1 = South) && (dir2 = East || dir2 = West))
+    in
+    (check dir1 dir2) || (check dir2 dir1)
+;;
+
+let lineLength pos1 pos2 =
+    (abs (pos2.x - pos1.x)) + (abs (pos2.y - pos1.y))
+;;
+
+let getLineIntersection pos1 pos2 pos3 pos4 =
+    if isPerpendicularTo pos2.dir pos4.dir then
+        let minPos = (List.min [pos1.x; pos2.x; pos3.x; pos4.x],
+                      List.min [pos1.y; pos2.y; pos3.y; pos4.y]) in
+        let maxPos = (List.max [pos1.x; pos2.x; pos3.x; pos4.x],
+                      List.max [pos1.y; pos2.y; pos3.y; pos4.y]) in
+        let maxArea = ((fst maxPos) - (fst minPos)) * ((snd maxPos) - (snd minPos)) in
+        let lineLength1 = lineLength pos1 pos2 in
+        let lineLength2 = lineLength pos3 pos4 in
+        let linesArea = lineLength1 * lineLength2 in
+        if maxArea = linesArea then
+            if pos1.y = pos2.y then
+                Some (pos3.x, pos1.y)
+            else
+                Some (pos1.x, pos3.y)
+        else
+            None
+    else
+        None
+;;
+
 let makeMove poses moveStr =
     if (List.head poses).fin then
         poses
@@ -63,19 +95,19 @@ let makeMove poses moveStr =
             | East -> (1, 0)
             | West -> (-1, 0)
         in
-        let rec takeSteps poses stepsLeft =
-            (*printfn "dx=%d, dy=%d" dx dy;*)
-            let lastStep = List.head poses in
-            if lastStep.fin || stepsLeft = 0 then
-                poses
-            else
-                let newX = lastStep.x + dx in
-                let newY = lastStep.y + dy in
-                let previouslyTraversed = List.exists (fun elem -> elem.x = newX && elem.y = newY) poses in
-                let nextStep = { x = newX; y = newY; dir = newDir; fin = previouslyTraversed } in
-                takeSteps (nextStep :: poses) (stepsLeft - 1)
+        let maybeNextPos = { x = pos.x + (dx * move.spaces); y = pos.y + (dy * move.spaces); dir = newDir; fin = false } in
+        let rec findPreviousTraversal previousPoses =
+            match previousPoses with
+            | [] -> None
+            | _ :: [] -> None
+            | pos2 :: pos1 :: rest ->
+                match getLineIntersection pos1 pos2 pos maybeNextPos with
+                | None -> findPreviousTraversal (pos1 :: rest)
+                | Some (intersectX, intersectY) -> Some { x = intersectX; y = intersectY; dir = maybeNextPos.dir; fin = true }
         in
-        takeSteps poses move.spaces
+        match findPreviousTraversal (List.tail poses) with
+        | None -> maybeNextPos :: poses
+        | Some intersectPos -> intersectPos :: poses
 ;;
 
 let moves = Console.ReadLine().Split([|", "|], StringSplitOptions.None) in
