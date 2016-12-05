@@ -5,17 +5,8 @@ exception Ex of string;;
 
 let g_md5 = MD5.Create();;
 
-let toHexString byteArray =
-    Array.fold (fun state (elem : byte) -> state + Convert.ToString(elem, 16)) "" byteArray
-;;
-
 let toByteArray str =
     Seq.toArray (Seq.map (fun (elem : char) -> Convert.ToByte(elem)) str)
-;;
-
-let md5HashStringToHexString str =
-    let hsh = g_md5.ComputeHash(toByteArray str) in
-    toHexString hsh
 ;;
 
 let getInterestingDigit (byteArray : byte[]) =
@@ -29,7 +20,6 @@ let getInterestingDigit (byteArray : byte[]) =
             None
     | _ -> None
 ;;
-
 
 let doorId = Console.ReadLine() in
 let rec findNextInterestingLetter (index : uint64) =
