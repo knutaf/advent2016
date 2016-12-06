@@ -1,3 +1,4 @@
 FSharp.Core.dll
 test*.txt
 *.exe
+*.pdb
