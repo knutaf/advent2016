@@ -3,7 +3,15 @@ open System.Security.Cryptography;;
 
 exception Ex of string;;
 
-let g_md5 = MD5.Create();;
+let measureTime fn =
+    let stopWatch = System.Diagnostics.Stopwatch.StartNew();
+    fn ();
+    stopWatch.Stop();
+    printfn "%f ms elapsed" stopWatch.Elapsed.TotalMilliseconds;
+    stopWatch.Elapsed.TotalMilliseconds
+;;
+
+let g_md5 = MD5.Create("MD5");;
 
 let toByteArray str =
     Seq.toArray (Seq.map (fun (elem : char) -> Convert.ToByte(elem)) str)
@@ -30,13 +38,13 @@ let rec findNextInterestingLetter (index : uint64) =
     | None -> findNextInterestingLetter (index + 1UL)
     | Some letter -> (letter, index)
 in
-let rec generatePasswordLetters index lettersLeft =
+let rec generatePasswordLetters sofar index lettersLeft =
     if lettersLeft = 0 then
-        ""
+        sofar
     else
         let (letter, nextIndex) = findNextInterestingLetter index in
         let _ = printfn "letter: %s at %u" letter nextIndex in
-        letter + (generatePasswordLetters (nextIndex + 1UL) (lettersLeft - 1))
+        generatePasswordLetters (sofar + letter) (nextIndex + 1UL) (lettersLeft - 1)
 in
-printfn "password: %s" (generatePasswordLetters 0UL 8)
+measureTime (fun () -> printfn "password: %s" (generatePasswordLetters "" 0UL 8))
 ;;
