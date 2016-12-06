@@ -11,8 +11,8 @@ let measureTime fn =
     stopWatch.Elapsed.TotalMilliseconds
 ;;
 
-let NUM_WORKERS = 4UL;;
-let NUM_HASHES_PER_WORKER_INSTANCE = 100000UL;;
+let DEFAULT_NUM_WORKERS = 4UL;;
+let DEFAULT_NUM_HASHES_PER_WORKER_INSTANCE = 100000UL;;
 
 let toByteArray str =
     Seq.toArray (Seq.map (fun (elem : char) -> Convert.ToByte(elem)) str)
@@ -34,7 +34,6 @@ let rec findNextInterestingLetter workerNum (md5 : MD5) doorId sofar (index : ui
     if numIndexesToSearch = 0UL then
         sofar
     else
-        (*if numIndexesToSearch = NUM_HASHES_PER_WORKER_INSTANCE then printfn "%u: starting at %u" workerNum index;*)
         if index % 100000UL = 0UL then printfn "%u: index %u" workerNum index;
         let str = doorId + Convert.ToString(index) in
         let hsh = md5.ComputeHash(toByteArray str) in
@@ -46,9 +45,9 @@ let rec findNextInterestingLetter workerNum (md5 : MD5) doorId sofar (index : ui
         in
         findNextInterestingLetter workerNum md5 doorId nextSofar (index + 1UL) (numIndexesToSearch - 1UL)
 in
-let createBatchFindNextInterestingLetter doorId startingIndex numHashesPerWorkerInstance =
+let createBatchFindNextInterestingLetter doorId startingIndex numWorkers numHashesPerWorkerInstance =
     seq {
-        for i in 0UL .. (NUM_WORKERS - 1UL) do
+        for i in 0UL .. (numWorkers - 1UL) do
             yield async {
                 let md5 = MD5.Create("MD5") in
                 return findNextInterestingLetter i md5 doorId [] (startingIndex + (i * numHashesPerWorkerInstance)) numHashesPerWorkerInstance
@@ -56,26 +55,34 @@ let createBatchFindNextInterestingLetter doorId startingIndex numHashesPerWorker
     }
 ;;
 
-let doorId = Console.ReadLine() in
-let rec generatePasswordLetters sofar index lettersLeft =
-    (*printfn "generate %s %u %d" sofar index lettersLeft;*)
-    if lettersLeft <= 0 then
-        sofar
-    else
-        let collectPasswordLettersFromBatch sofar taskResults =
-            let collectPasswordLettersFromTaskResults letter sofar =
-                sofar + letter
+[<EntryPoint>]
+let main argv =
+    let (numWorkers, numHashesPerWorkerInstance) =
+        match argv with
+        | [| nw; nh |] -> (Convert.ToUInt64(nw), Convert.ToUInt64(nh))
+        | _ -> (DEFAULT_NUM_WORKERS, DEFAULT_NUM_HASHES_PER_WORKER_INSTANCE)
+    in
+    let doorId = Console.ReadLine() in
+    let rec generatePasswordLetters sofar index lettersLeft =
+        (*printfn "generate %s %u %d" sofar index lettersLeft;*)
+        if lettersLeft <= 0 then
+            sofar
+        else
+            let collectPasswordLettersFromBatch sofar taskResults =
+                let collectPasswordLettersFromTaskResults letter sofar =
+                    sofar + letter
+                in
+                List.foldBack collectPasswordLettersFromTaskResults taskResults sofar
             in
-            List.foldBack collectPasswordLettersFromTaskResults taskResults sofar
-        in
-        let batchSize = NUM_HASHES_PER_WORKER_INSTANCE in
-        let batch = createBatchFindNextInterestingLetter doorId index batchSize in
-        let batchResults = Async.RunSynchronously (Async.Parallel batch) in
-        let newLetters = Array.fold collectPasswordLettersFromBatch "" batchResults in
-        generatePasswordLetters
-            (sofar + newLetters.[0 .. (min lettersLeft (String.length newLetters)) - 1])
-            (index + (NUM_WORKERS * batchSize))
-            (lettersLeft - (String.length newLetters))
+            let batchSize = numHashesPerWorkerInstance in
+            let batch = createBatchFindNextInterestingLetter doorId index numWorkers batchSize in
+            let batchResults = Async.RunSynchronously (Async.Parallel batch) in
+            let newLetters = Array.fold collectPasswordLettersFromBatch "" batchResults in
+            generatePasswordLetters
+                (sofar + newLetters.[0 .. (min lettersLeft (String.length newLetters)) - 1])
+                (index + (numWorkers * batchSize))
+                (lettersLeft - (String.length newLetters))
+    in
+    let _ = measureTime (fun () -> printfn "password: %s" (generatePasswordLetters "" 0UL 8));
+    0
 ;;
-
-measureTime (fun () -> printfn "password: %s" (generatePasswordLetters "" 0UL 8));;
