@@ -53,12 +53,21 @@ let applyInstructionToGrid inst (grid : bool[][]) =
                 grid.[r].[c] <- true
         grid
     in
+    let applyRotateRow row num =
+        let oldRow = [| for i in 0 .. ((Array.length grid.[row]) - 1) -> grid.[row].[i] |] in
+        for c in 0 .. ((Array.length grid.[row]) - 1) do
+            grid.[row].[(c + num) % (Array.length grid.[row])] <- oldRow.[c]
+        grid
+    in
+    let applyRotateCol col num =
+        grid
+    in
     printfn "inst: %A" inst;
     printfn "%s" (stringOfGrid grid);
     match inst with
     | Rect (c, r) -> applyRect c r
-    | RotateRow (r, num) -> grid
-    | RotateCol (c, num) -> grid
+    | RotateRow (r, num) -> applyRotateRow r num
+    | RotateCol (c, num) -> applyRotateCol c num
 ;;
 
 let countLit grid =
