@@ -46,10 +46,19 @@ let stringOfGrid =
     Array.fold (fun sofar row -> (collectColumns sofar row) + "\r\n") ""
 ;;
 
-let applyInstructionToGrid inst grid =
+let applyInstructionToGrid inst (grid : bool[][]) =
+    let applyRect cols rows =
+        for r in 0 .. (rows - 1) do
+            for c in 0 .. (cols - 1) do
+                grid.[r].[c] <- true
+        grid
+    in
     printfn "inst: %A" inst;
     printfn "%s" (stringOfGrid grid);
-    grid
+    match inst with
+    | Rect (c, r) -> applyRect c r
+    | RotateRow (r, num) -> grid
+    | RotateCol (c, num) -> grid
 ;;
 
 let countLit grid =
