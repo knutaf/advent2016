@@ -60,6 +60,9 @@ let applyInstructionToGrid inst (grid : bool[][]) =
         grid
     in
     let applyRotateCol col num =
+        let oldCol = [| for r in 0 .. ((Array.length grid) - 1) -> grid.[r].[col] |] in
+        for r in 0 .. ((Array.length grid) - 1) do
+            grid.[(r + num) % (Array.length grid)].[col] <- oldCol.[r]
         grid
     in
     printfn "inst: %A" inst;
@@ -93,5 +96,6 @@ let create2DArrayOfArrays rows cols initialValue =
 ;;
 
 let finalGrid = processLines (create2DArrayOfArrays GRID_HEIGHT GRID_WIDTH false) in
+let _ = printfn "%s" (stringOfGrid finalGrid) in
 printfn "num lit: %u" (countLit finalGrid)
 ;;
