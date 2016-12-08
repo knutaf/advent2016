@@ -39,8 +39,16 @@ let parseInstruction line =
     | _ -> raise (Ex (sprintf "invalid directive! %s" line))
 ;;
 
+let stringOfGrid =
+    let collectColumns sofar =
+        Array.fold (fun sofar c -> if c then sofar + "#" else sofar + ".") sofar
+    in
+    Array.fold (fun sofar row -> (collectColumns sofar row) + "\r\n") ""
+;;
+
 let applyInstructionToGrid inst grid =
     printfn "inst: %A" inst;
+    printfn "%s" (stringOfGrid grid);
     grid
 ;;
 
@@ -57,6 +65,15 @@ let rec processLines grid =
         processLines (applyInstructionToGrid inst grid)
 ;;
 
-let finalGrid = processLines (Array2D.create 6 50 false) in
+let create2DArrayOfArrays rows cols initialValue =
+    [|
+        for r in 1 .. rows ->
+        [|
+            for c in 1 .. cols -> initialValue
+        |]
+    |]
+;;
+
+let finalGrid = processLines (create2DArrayOfArrays GRID_HEIGHT GRID_WIDTH false) in
 printfn "num lit: %u" (countLit finalGrid)
 ;;
