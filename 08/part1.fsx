@@ -3,13 +3,13 @@ open System.Text.RegularExpressions;;
 
 exception Ex of string;;
 
-(*
 let GRID_WIDTH = 50;;
 let GRID_HEIGHT = 6;;
-*)
 
+(*
 let GRID_WIDTH = 7;;
 let GRID_HEIGHT = 3;;
+*)
 
 type Instruction =
     | Rect of int * int
@@ -73,8 +73,11 @@ let applyInstructionToGrid inst (grid : bool[][]) =
     | RotateCol (c, num) -> applyRotateCol c num
 ;;
 
-let countLit grid =
-    0
+let countLit =
+    let collectColumns sofar =
+        Array.fold (fun sofar c -> if c then sofar + 1 else sofar) 0
+    in
+    Array.fold (fun sofar row -> sofar + (collectColumns sofar row)) 0
 ;;
 
 let rec processLines grid =
