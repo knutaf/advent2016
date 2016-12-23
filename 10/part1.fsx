@@ -11,10 +11,10 @@ type Input =
 type OutputConnection =
     | Unknown
     | BotNum of int
-    | Bot of Bot
     | Output of int
+;;
 
-and Bot = { num : int; in1 : Input; in2 : Input; olow : OutputConnection; ohi : OutputConnection }
+type Bot = { num : int; in1 : Input; in2 : Input; olow : OutputConnection; ohi : OutputConnection }
 ;;
 
 let printMap map =
@@ -55,20 +55,20 @@ let parseBotOutputs line =
 ;;
 
 let addInputToBot botMap input botNum =
-    let newBot =
+    let (newBot, didAdd) =
         match Map.tryFind botNum botMap with
         | Some bot ->
             let _ = assert (bot.num = botNum) in
             if bot.in1 = Unresolved then
                 let _ = assert (bot.in2 = Unresolved) in
-                { num = bot.num; in1 = input; in2 = bot.in2; olow = bot.olow; ohi = bot.ohi }
+                ({ num = bot.num; in1 = input; in2 = bot.in2; olow = bot.olow; ohi = bot.ohi }, true)
             elif bot.in2 = Unresolved then
-                { num = bot.num; in1 = bot.in1; in2 = input; olow = bot.olow; ohi = bot.ohi }
+                ({ num = bot.num; in1 = bot.in1; in2 = input; olow = bot.olow; ohi = bot.ohi }, true)
             else
-                raise (Ex (sprintf "bot trying to fill third input! %A" bot))
-        | None -> { num = botNum; in1 = input; in2 = Unresolved; olow = Unknown; ohi = Unknown }
+                (bot, false)
+        | None -> ({ num = botNum; in1 = input; in2 = Unresolved; olow = Unknown; ohi = Unknown }, true)
     in
-    Map.add botNum newBot botMap
+    (Map.add botNum newBot botMap, didAdd)
 ;;
 
 let addOutputsToBot botMap outLow outHigh botNum =
@@ -91,7 +91,7 @@ let rec processLines botMap =
     else
         let newBotMap =
             match parseBotInput line with
-            | Some (botNum, input) -> addInputToBot botMap input botNum
+            | Some (botNum, input) -> fst (addInputToBot botMap input botNum)
             | None ->
                 match parseBotOutputs line with
                 | Some (botNum, outLow, outHigh) -> addOutputsToBot botMap outLow outHigh botNum
@@ -99,6 +99,55 @@ let rec processLines botMap =
         in
         processLines newBotMap
 in
-let botMap = processLines Map.empty in
-printMap botMap
+;;
+
+let checkBotMapForAllOutputs botMap =
+   Map.exists (fun _ bot -> bot.olow = Unknown || bot.ohi = Unknown) botMap
+;;
+
+let checkBotMapForAllInputs botMap =
+   Map.exists (fun _ bot -> bot.in1 = Unresolved || bot.in2 = Unresolved) botMap
+;;
+
+let resolveInputs botMap =
+    let trySetConnectedInputs (botMap, didResolve) _ bot =
+        let trySetConnectedInput outputConnection value botMap =
+            match outputConnection with
+            | BotNum (outputBotNum) -> addInputToBot botMap (Value(value)) outputBotNum
+            | Output (_) -> (botMap, false)
+            | Unknown -> raise (Ex (sprintf "bot has unknown output! %A" bot))
+        in
+        match (bot.in1, bot.in2) with
+        | (Value(val1), Value(val2)) ->
+            let (botMap2, didResolve2) = trySetConnectedInput bot.olow (min val1 val2) botMap in
+            let (botMap3, didResolve3) = trySetConnectedInput bot.ohi (max val1 val2) botMap2 in
+            (botMap3, didResolve || didResolve2 || didResolve3)
+        | _ -> (botMap, didResolve)
+    in
+    Map.fold trySetConnectedInputs (botMap, false) botMap
+;;
+
+let rec resolveInputsUntilDone botMap =
+    let (botMap2, didResolve) = resolveInputs botMap in
+    if didResolve then
+        resolveInputsUntilDone botMap2
+    else
+        botMap
+;;
+
+[<EntryPoint>]
+let main argv =
+    try
+        let findInput1 = Convert.ToInt32(argv.[0]) in
+        let findInput2 = Convert.ToInt32(argv.[1]) in
+        let botMap = processLines Map.empty in
+        let _ = printMap botMap in
+        let _ = printfn "check any output unset: %A" (checkBotMapForAllOutputs botMap) in
+        let botMapResolved = resolveInputsUntilDone botMap in
+        let _ = printMap botMapResolved in
+        let _ = printfn "check any input unresolved: %A" (checkBotMapForAllInputs botMapResolved) in
+        let targetBotNum = Map.findKey (fun _ bot -> (bot.in1 = Value(findInput1) && bot.in2 = Value(findInput2)) || (bot.in1 = Value(findInput2) && bot.in2 = Value(findInput1))) botMapResolved in
+        printfn "bot %d matches inputs %d and %d" targetBotNum findInput1 findInput2
+    with ex -> printfn "Exception: %A" ex; raise ex
+    0
 ;;
