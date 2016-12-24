@@ -113,6 +113,7 @@ let tryToggleSlotSelected (floors : Set<Slot>[]) elevatorFloor r c selectedSlots
 ;;
 
 let rec processNextKey floors elevatorFloor r c selectedSlots =
+    let isCarrying = not (Set.isEmpty selectedSlots) in
     let moveCursor r c key =
         match key with
         | ConsoleKey.Spacebar ->
@@ -135,13 +136,13 @@ let rec processNextKey floors elevatorFloor r c selectedSlots =
             )
         | ConsoleKey.UpArrow ->
             (
-            min (r + 1) ((Array.length INITIAL_FLOORS) - 1),
+            List.min [r + 1; elevatorFloor + (if isCarrying then 1 else 0); (Array.length INITIAL_FLOORS) - 1],
             c,
             selectedSlots
             )
         | ConsoleKey.DownArrow ->
             (
-            max (r - 1) 0,
+            List.max [r - 1; elevatorFloor - (if isCarrying then 1 else 0); 0],
             c,
             selectedSlots
             )
