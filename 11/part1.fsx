@@ -94,7 +94,7 @@ let drawGridWithCursor (floors : Set<Slot>[]) elevatorFloor numMoves r c selecte
     in
     let _ = printfn "Moves: %d" numMoves in
     for floorNum = ((Array.length floors) - 1) downto 0 do printFloor floorNum;
-    cprintf (Some ConsoleColor.Red) None "%s" errorMessage
+    cprintf (Some ConsoleColor.Red) None "%-70s" errorMessage
 ;;
 
 let isGen slot =
