@@ -84,7 +84,20 @@ let drawGridWithCursor (floors : Set<Slot>[]) elevatorFloor numMoves r c selecte
         let printSlot slotNum slot =
             cprintf
                 (if floorNum = elevatorFloor && Set.contains slot selectedSlots then Some ConsoleColor.Yellow else None)
-                (if floorNum = r && slotNum = c then Some ConsoleColor.DarkBlue else None)
+                (
+                if floorNum = r then
+                    if r = elevatorFloor then
+                        if slotNum = c then
+                            Some ConsoleColor.DarkBlue
+                        else
+                            None
+                    elif not (Set.isEmpty selectedSlots) then
+                        Some ConsoleColor.DarkBlue
+                    else
+                        None
+                else
+                    None
+                )
                 "%2s "
                 (if Set.contains slot floorSet then (string_from_slot slot) else ".")
         in
