@@ -114,7 +114,7 @@ let tryToggleSlotSelected (floors : Set<Slot>[]) elevatorFloor r c selectedSlots
 ;;
 
 let tryPlacing (floors : Set<Slot>[]) elevatorFloor r c selectedSlots =
-    (true, selectedSlots)
+    (floors, r, Set.empty<Slot>)
 ;;
 
 let rec processNextKey floors elevatorFloor numMoves r c selectedSlots =
@@ -122,20 +122,24 @@ let rec processNextKey floors elevatorFloor numMoves r c selectedSlots =
     let moveCursor r c key =
         match key with
         | ConsoleKey.Spacebar ->
-            let (didMove, newSelectedSlots) =
+            let (newFloors, newElevatorFloor, newSelectedSlots) =
                 if r = elevatorFloor then
-                    (false, tryToggleSlotSelected floors elevatorFloor r c selectedSlots)
+                    (floors, elevatorFloor, tryToggleSlotSelected floors elevatorFloor r c selectedSlots)
                 else
                     tryPlacing floors elevatorFloor r c selectedSlots
             in
             (
+            newFloors,
+            newElevatorFloor,
             r,
             c,
-            (if didMove then numMoves + 1 else numMoves),
+            (if elevatorFloor <> newElevatorFloor then numMoves + 1 else numMoves),
             newSelectedSlots
             )
         | ConsoleKey.RightArrow ->
             (
+            floors,
+            elevatorFloor,
             r,
             min (c + 1) ((Array.length ORDERED_SLOTS) - 1),
             numMoves,
@@ -143,6 +147,8 @@ let rec processNextKey floors elevatorFloor numMoves r c selectedSlots =
             )
         | ConsoleKey.LeftArrow ->
             (
+            floors,
+            elevatorFloor,
             r,
             max (c - 1) 0,
             numMoves,
@@ -150,6 +156,8 @@ let rec processNextKey floors elevatorFloor numMoves r c selectedSlots =
             )
         | ConsoleKey.UpArrow ->
             (
+            floors,
+            elevatorFloor,
             List.min [r + 1; elevatorFloor + (if isCarrying then 1 else 0); (Array.length INITIAL_FLOORS) - 1],
             c,
             numMoves,
@@ -157,17 +165,19 @@ let rec processNextKey floors elevatorFloor numMoves r c selectedSlots =
             )
         | ConsoleKey.DownArrow ->
             (
+            floors,
+            elevatorFloor,
             List.max [r - 1; elevatorFloor - (if isCarrying then 1 else 0); 0],
             c,
             numMoves,
             selectedSlots
             )
-        | _ -> (r, c, numMoves, selectedSlots)
+        | _ -> (floors, elevatorFloor, r, c, numMoves, selectedSlots)
     in
     let _ = drawGridWithCursor floors elevatorFloor numMoves r c selectedSlots in
     let keyInfo = Console.ReadKey(true) in
-    let (newR, newC, newNumMoves, newSelectedSlots) = moveCursor r c keyInfo.Key in
-    processNextKey floors elevatorFloor newNumMoves newR newC newSelectedSlots
+    let (newFloors, newElevatorFloor, newR, newC, newNumMoves, newSelectedSlots) = moveCursor r c keyInfo.Key in
+    processNextKey newFloors newElevatorFloor newNumMoves newR newC newSelectedSlots
 ;;
 
 Console.CursorVisible <- false;
