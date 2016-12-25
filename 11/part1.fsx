@@ -203,20 +203,10 @@ let rec processNextKey history numMoves r c selectedSlots errorMessage =
             newErrorMessage
             )
         | ConsoleKey.U ->
-            let (newHistory, newNumMoves, newR, newC, newErrorMessage) =
-                match history with
-                | _ :: [] -> (history, numMoves, r, c, "No more moves to undo")
-                | _ :: tail -> (tail, numMoves - 1, (snd (List.head tail)), 0, "")
-                | _ -> raise (Ex "somehow got to 0 moves in history")
-            in
-            (
-            newHistory,
-            newR,
-            newC,
-            newNumMoves,
-            selectedSlots,
-            newErrorMessage
-            )
+            match history with
+            | _ :: [] -> (history, r, c, numMoves, selectedSlots, "No more moves to undo")
+            | _ :: tail -> (tail, (snd (List.head tail)), 0, numMoves - 1, Set.empty<Slot>, "")
+            | _ -> raise (Ex "somehow got to 0 moves in history")
         | ConsoleKey.RightArrow ->
             (
             history,
