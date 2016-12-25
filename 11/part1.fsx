@@ -124,6 +124,12 @@ let isMic slot =
     | Mic _ -> true
 ;;
 
+let hasPairedSlotOnFloor slot floorSet =
+    match slot with
+    | Gen g -> Set.contains (Mic g) floorSet
+    | Mic m -> Set.contains (Gen m) floorSet
+;;
+
 let tryToggleSlotSelected (floors : Set<Slot>[]) elevatorFloor r c selectedSlots =
     if r = elevatorFloor then
         let slotUnderCursor = ORDERED_SLOTS.[c] in
@@ -142,54 +148,34 @@ let tryToggleSlotSelected (floors : Set<Slot>[]) elevatorFloor r c selectedSlots
 ;;
 
 let tryPlacing (floors : Set<Slot>[]) elevatorFloor r selectedSlots =
-    let hasPairedSlot slot floorSet =
-        match slot with
-        | Gen g -> Set.contains (Mic g) floorSet
-        | Mic m -> Set.contains (Gen m) floorSet
-    in
-    let getErrorMessageForUnshieldedMic exceptElement floorSet =
-        let checkForUnshieldedMic sofar slot =
-            match slot with
-            | Gen g -> sofar
-            | Mic m ->
-                if m = exceptElement then
-                    sofar
+    let checkFloor floorSet =
+        let floorHasAnyGen = Set.exists isGen floorSet in
+        Set.fold (fun errorMessage slot ->
+            if errorMessage = "" then
+                if hasPairedSlotOnFloor slot floorSet then
+                    ""
+                elif (isMic slot) && floorHasAnyGen then
+                    sprintf "slot %A is unsafe" slot
                 else
-                    if not (hasPairedSlot slot floorSet) then
-                        sprintf "%A missing pair" slot
-                    else
-                        sofar
-        in
-        Set.fold checkForUnshieldedMic "" floorSet
-    in
-    let getErrorMessageForFloorSafety floorSetForPlacing slotToPlace =
-        match slotToPlace with
-        | Gen g -> getErrorMessageForUnshieldedMic g floorSetForPlacing
-        | Mic m ->
-            if Set.contains (Gen m) floorSetForPlacing then
-                ""
-            elif Set.exists isGen floorSetForPlacing then
-                "floor has generators, and this mic is not shielded"
+                    ""
             else
-                ""
-    in
-    let tryPlaceSlot (floorSet, errorMessage) slot =
-        if errorMessage = "" then
-            let errorForPlacing = getErrorMessageForFloorSafety floorSet slot in
-            if errorForPlacing = "" then
-                (Set.add slot floorSet, errorMessage)
-            else
-                (floorSet, errorForPlacing)
-        else
-            (floorSet, errorMessage)
+                errorMessage
+            ) "" floorSet
     in
     let slotsList = Set.toList selectedSlots in
-    let (newFloorSet, errorMessage) = List.fold tryPlaceSlot (floors.[r], "") slotsList in
+    let sourceFloorSet = List.fold (fun floorSet slot -> Set.remove slot floorSet) floors.[elevatorFloor] slotsList in
+    let destFloorSet = List.fold (fun floorSet slot -> Set.add slot floorSet) floors.[r] slotsList in
+    let errorMessage =
+        let sourceErrorMessage = checkFloor sourceFloorSet in
+        if sourceErrorMessage = "" then
+            checkFloor destFloorSet
+        else
+            sourceErrorMessage
+    in
     if errorMessage = "" then
-        let elevatorFloorSet = List.fold (fun floorSet slot -> Set.remove slot floorSet) floors.[elevatorFloor] slotsList in
         let newFloors = Array.copy floors in
-        let _ = newFloors.[elevatorFloor] <- elevatorFloorSet in
-        let _ = newFloors.[r] <- newFloorSet in
+        let _ = newFloors.[elevatorFloor] <- sourceFloorSet in
+        let _ = newFloors.[r] <- destFloorSet in
         (newFloors, r, Set.empty<Slot>, errorMessage)
     else
         (floors, elevatorFloor, selectedSlots, errorMessage)
