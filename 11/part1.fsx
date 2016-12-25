@@ -1,5 +1,7 @@
 open System;;
 
+exception Ex of string;;
+
 let cprintf fgColor bgColor fmt = 
     let printer (s : string) =
         let oldFG = System.Console.ForegroundColor in
@@ -185,14 +187,16 @@ let tryPlacing (floors : Set<Slot>[]) elevatorFloor r selectedSlots =
     let (newFloorSet, errorMessage) = List.fold tryPlaceSlot (floors.[r], "") slotsList in
     if errorMessage = "" then
         let elevatorFloorSet = List.fold (fun floorSet slot -> Set.remove slot floorSet) floors.[elevatorFloor] slotsList in
-        let _ = floors.[elevatorFloor] <- elevatorFloorSet in
-        let _ = floors.[r] <- newFloorSet in
-        (floors, r, Set.empty<Slot>, errorMessage)
+        let newFloors = Array.copy floors in
+        let _ = newFloors.[elevatorFloor] <- elevatorFloorSet in
+        let _ = newFloors.[r] <- newFloorSet in
+        (newFloors, r, Set.empty<Slot>, errorMessage)
     else
         (floors, elevatorFloor, selectedSlots, errorMessage)
 ;;
 
-let rec processNextKey floors elevatorFloor numMoves r c selectedSlots errorMessage =
+let rec processNextKey history numMoves r c selectedSlots errorMessage =
+    let (floors, elevatorFloor) = List.head history in
     let isCarrying = not (Set.isEmpty selectedSlots) in
     let moveCursor r c key =
         match key with
@@ -203,19 +207,33 @@ let rec processNextKey floors elevatorFloor numMoves r c selectedSlots errorMess
                 else
                     tryPlacing floors elevatorFloor r selectedSlots
             in
+            let madeMove = elevatorFloor <> newElevatorFloor in
             (
-            newFloors,
-            newElevatorFloor,
+            (if madeMove then ((newFloors, newElevatorFloor) :: history) else history),
             r,
             c,
-            (if elevatorFloor <> newElevatorFloor then numMoves + 1 else numMoves),
+            (if madeMove then numMoves + 1 else numMoves),
             newSelectedSlots,
+            newErrorMessage
+            )
+        | ConsoleKey.U ->
+            let (newHistory, newNumMoves, newR, newC, newErrorMessage) =
+                match history with
+                | _ :: [] -> (history, numMoves, r, c, "No more moves to undo")
+                | _ :: tail -> (tail, numMoves - 1, (snd (List.head tail)), 0, "")
+                | _ -> raise (Ex "somehow got to 0 moves in history")
+            in
+            (
+            newHistory,
+            newR,
+            newC,
+            newNumMoves,
+            selectedSlots,
             newErrorMessage
             )
         | ConsoleKey.RightArrow ->
             (
-            floors,
-            elevatorFloor,
+            history,
             r,
             min (c + 1) ((Array.length ORDERED_SLOTS) - 1),
             numMoves,
@@ -224,8 +242,7 @@ let rec processNextKey floors elevatorFloor numMoves r c selectedSlots errorMess
             )
         | ConsoleKey.LeftArrow ->
             (
-            floors,
-            elevatorFloor,
+            history,
             r,
             max (c - 1) 0,
             numMoves,
@@ -234,8 +251,7 @@ let rec processNextKey floors elevatorFloor numMoves r c selectedSlots errorMess
             )
         | ConsoleKey.UpArrow ->
             (
-            floors,
-            elevatorFloor,
+            history,
             List.min [r + 1; elevatorFloor + (if isCarrying then 1 else 0); (Array.length INITIAL_FLOORS) - 1],
             c,
             numMoves,
@@ -244,24 +260,23 @@ let rec processNextKey floors elevatorFloor numMoves r c selectedSlots errorMess
             )
         | ConsoleKey.DownArrow ->
             (
-            floors,
-            elevatorFloor,
+            history,
             List.max [r - 1; elevatorFloor - (if isCarrying then 1 else 0); 0],
             c,
             numMoves,
             selectedSlots,
             errorMessage
             )
-        | _ -> (floors, elevatorFloor, r, c, numMoves, selectedSlots, errorMessage)
+        | _ -> (history, r, c, numMoves, selectedSlots, errorMessage)
     in
     let _ = drawGridWithCursor floors elevatorFloor numMoves r c selectedSlots errorMessage in
     let keyInfo = Console.ReadKey(true) in
-    let (newFloors, newElevatorFloor, newR, newC, newNumMoves, newSelectedSlots, newErrorMessage) = moveCursor r c keyInfo.Key in
-    processNextKey newFloors newElevatorFloor newNumMoves newR newC newSelectedSlots newErrorMessage
+    let (newHistory, newR, newC, newNumMoves, newSelectedSlots, newErrorMessage) = moveCursor r c keyInfo.Key in
+    processNextKey newHistory newNumMoves newR newC newSelectedSlots newErrorMessage
 ;;
 
 Console.CursorVisible <- false;
 Console.Clear();
 
-processNextKey INITIAL_FLOORS 0 0 0 0 Set.empty<Slot> ""
+processNextKey [(INITIAL_FLOORS, 0)] 0 0 0 Set.empty<Slot> ""
 ;;
