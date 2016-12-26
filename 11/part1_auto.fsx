@@ -2,6 +2,47 @@ open System;;
 
 exception Ex of string;;
 
+type 'a tup =
+    | Tuple of 'a list
+;;
+
+let rec getAllSublists minLength ls =
+    if (List.length ls) > minLength then
+        match ls with
+        | [] -> []
+        | head :: [] -> []
+        | head :: tail -> tail :: (getAllSublists minLength tail)
+    else
+        []
+;;
+
+let rec getEachN n ls =
+    let rec getEachNHelper indent origN n ls =
+        (*printfn "%sgetEachNHelper %d %A" indent n ls;*)
+        if n > 1 then
+            if (List.length ls) < n then
+                []
+            elif (List.length ls) = n then
+                [Tuple ls]
+            else
+                let sublists = getAllSublists 1 ls in
+                let nMinus1TupleLists = List.map (getEachNHelper (indent + "  ") origN (n - 1)) sublists in
+                let nMinus1Tuples = List.fold (fun sofar tupleList -> sofar @ tupleList) [] nMinus1TupleLists in
+                (*let _ = printfn "%snMinus1Tuples = %A" indent nMinus1Tuples in*)
+                let nLists = List.map (fun (Tuple t) -> Tuple ((List.head ls) :: t)) nMinus1Tuples in
+                (*let _ = printfn "%snLists = %A" indent nLists in*)
+                if n = origN then
+                    nLists @ (getEachNHelper (indent + "  ") origN n (List.tail ls))
+                else
+                    nLists
+        else
+            [Tuple [List.head ls]]
+    in
+    let tuples = getEachNHelper "" n n ls in
+    let _ = List.iter (fun (Tuple (t)) -> assert ((List.length t) = n)) in
+    tuples
+;;
+
 let NUM_ELEMENTS = 5;;
 type Element =
 | P
@@ -33,16 +74,8 @@ let ORDERED_SLOTS =
     |]
 ;;
 
-type State = { floors : Set<Slot>[]; elevatorFloor : int; numMoves : int; hash : uint64 };;
-
-let INITIAL_FLOORS =
-    [|
-        Set.ofList [ Gen P; Mic P ];
-        Set.ofList [ Gen C; Gen B; Gen R; Gen F ];
-        Set.ofList [ Mic C; Mic B; Mic R; Mic F ];
-        Set.empty<Slot>
-    |]
-;;
+type State = { floors : Set<Slot>[]; elevatorFloor : int; numMoves : int };;
+type HistoryEntry = { state : State; hash : uint64 };;
 
 let string_from_slot slot =
     let string_from_element element =
@@ -98,7 +131,7 @@ let hasPairedSlotOnFloor slot floorSet =
     | Mic m -> Set.contains (Gen m) floorSet
 ;;
 
-let calculateHash floors elevatorFloor =
+let calculateHash state =
     let addElementsFromFloor (seenElements, numElementsSeen) floorSet =
         let addElement (seenElements, numElementsSeen) slot =
             let elem = elemFromSlot slot in
@@ -109,7 +142,7 @@ let calculateHash floors elevatorFloor =
         in
         Set.fold addElement (seenElements, numElementsSeen) floorSet
     in
-    let (seenElements, _) = Array.fold addElementsFromFloor (Map.empty, 0) floors in
+    let (seenElements, _) = Array.fold addElementsFromFloor (Map.empty, 0) state.floors in
     (*let _ = printfn "seen elements: %A" seenElements in*)
     let addFloorToHash hashSofar floorNum =
         (*let _ = printfn "addFloorToHash %u %d" hashSofar floorNum in*)
@@ -128,13 +161,17 @@ let calculateHash floors elevatorFloor =
             let bitPosition = floorNum * (Array.length ORDERED_SLOTS) in
             hashSofar ||| (1UL <<< bitPosition)
         in
-        let newHash = Set.fold addSlotToHash hashSofar floors.[floorNum] in
-        if floorNum = elevatorFloor then
+        let newHash = Set.fold addSlotToHash hashSofar state.floors.[floorNum] in
+        if floorNum = state.elevatorFloor then
             addElevatorBitToHash newHash
         else
             newHash
     in
-    Seq.fold addFloorToHash 0UL (seq { 0 .. ((Array.length floors) - 1)})
+    Seq.fold addFloorToHash 0UL (seq { 0 .. ((Array.length state.floors) - 1)})
+;;
+
+let createHistoryEntry state =
+    { state = state; hash = calculateHash state }
 ;;
 
 let tryPlacing (floors : Set<Slot>[]) elevatorFloor r selectedSlots =
@@ -171,59 +208,48 @@ let tryPlacing (floors : Set<Slot>[]) elevatorFloor r selectedSlots =
         (floors, elevatorFloor, selectedSlots, errorMessage)
 ;;
 
-let testFloors1 =
-    [|
-        Set.ofList [ Gen C; Mic C ];
-        Set.ofList [ Gen P; Gen B; Gen R; Gen F ];
-        Set.ofList [ Mic P; Mic B; Mic R; Mic F ];
-        Set.empty<Slot>
-    |]
+let INITIAL_STATE =
+    {
+        floors =
+            [|
+                Set.ofList [ Gen P; Mic P ];
+                Set.ofList [ Gen C; Gen B; Gen R; Gen F ];
+                Set.ofList [ Mic C; Mic B; Mic R; Mic F ];
+                Set.empty<Slot>
+            |];
+        elevatorFloor = 0;
+        numMoves = 0;
+    }
 ;;
 
-let testFloors2 =
-    [|
-        Set.ofList [ Gen C; Mic C ];
-        Set.ofList [ Gen F; Gen R; Gen B; Gen P ];
-        Set.ofList [ Mic P; Mic R; Mic B; Mic F ];
-        Set.empty<Slot>
-    |]
+let INITIAL_HASH = calculateHash INITIAL_STATE;;
+
+let FINAL_STATE =
+    {
+        floors =
+            [|
+                Set.empty<Slot>;
+                Set.empty<Slot>;
+                Set.empty<Slot>;
+                Set.ofArray ORDERED_SLOTS
+            |];
+        elevatorFloor = 3;
+        numMoves = 0;
+    }
 ;;
 
-let testFloors3 =
-    [|
-        Set.ofList [ Mic C; Gen C ];
-        Set.ofList [ Gen P; Gen B; Gen R; Gen F ];
-        Set.ofList [ Mic P; Mic B; Mic R; Mic F ];
-        Set.empty<Slot>
-    |]
+let FINAL_HASH = calculateHash FINAL_STATE;;
+
+let bfs history frontier =
+    match frontier with
+    | [] -> raise (Ex "empty frontier!")
+    | nextEntryToExpand :: restOfFrontier ->
+        let expandEntries entry =
+        in
+        let expandedEntries = expandEntries nextEntryToExpand in
+        bfs (nextEntryToExpand :: history) (restOfFrontier @ expandEntries)
 ;;
 
-let testFloors4 =
-    [|
-        Set.ofList [ Mic C; Gen C; Gen F ];
-        Set.ofList [ Gen P; Gen B; Gen R ];
-        Set.ofList [ Mic P; Mic B; Mic R; Mic F ];
-        Set.empty<Slot>
-    |]
+let finalHistoryEntry = bfs [] [ createHistoryEntry INITIAL_STATE ] in
+drawState finalHistoryEntry.state
 ;;
-
-let testFloors5 =
-    [|
-        Set.ofList [ Mic C; Gen C ];
-        Set.ofList [ Gen P; Gen B; Gen R ];
-        Set.ofList [ Mic P; Mic B; Mic R; Mic F ];
-        Set.ofList [ Gen F ]
-    |]
-;;
-
-let hashInit = calculateHash INITIAL_FLOORS 0 in
-let testHash floors elevatorFloor =
-    let hsh = calculateHash floors elevatorFloor in
-    printfn "%u = %u? %A" hashInit hsh (hashInit = hsh)
-in
-testHash testFloors1 0;
-testHash testFloors2 0;
-testHash testFloors3 0;
-testHash testFloors1 1;
-testHash testFloors4 0;
-testHash testFloors5 0;
