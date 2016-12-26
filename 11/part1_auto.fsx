@@ -23,23 +23,23 @@ let rec getEachN n ls =
             if (List.length ls) < n then
                 []
             elif (List.length ls) = n then
-                [Tuple ls]
+                [ls]
             else
                 let sublists = getAllSublists 1 ls in
                 let nMinus1TupleLists = List.map (getEachNHelper (indent + "  ") origN (n - 1)) sublists in
                 let nMinus1Tuples = List.fold (fun sofar tupleList -> sofar @ tupleList) [] nMinus1TupleLists in
                 (*let _ = printfn "%snMinus1Tuples = %A" indent nMinus1Tuples in*)
-                let nLists = List.map (fun (Tuple t) -> Tuple ((List.head ls) :: t)) nMinus1Tuples in
+                let nLists = List.map (fun t -> (List.head ls) :: t) nMinus1Tuples in
                 (*let _ = printfn "%snLists = %A" indent nLists in*)
                 if n = origN then
                     nLists @ (getEachNHelper (indent + "  ") origN n (List.tail ls))
                 else
                     nLists
         else
-            [Tuple [List.head ls]]
+            [[List.head ls]]
     in
     let tuples = getEachNHelper "" n n ls in
-    let _ = List.iter (fun (Tuple (t)) -> assert ((List.length t) = n)) in
+    let _ = List.iter (fun t -> assert ((List.length t) = n)) in
     tuples
 ;;
 
@@ -222,8 +222,6 @@ let INITIAL_STATE =
     }
 ;;
 
-let INITIAL_HASH = calculateHash INITIAL_STATE;;
-
 let FINAL_STATE =
     {
         floors =
@@ -238,13 +236,58 @@ let FINAL_STATE =
     }
 ;;
 
-let FINAL_HASH = calculateHash FINAL_STATE;;
+let FINAL_ENTRY = createHistoryEntry FINAL_STATE;;
+
+let isFloorSafe floorSet =
+    let floorHasAnyGen = Set.exists isGen floorSet in
+    Set.fold (fun isValid slot ->
+        if isValid then
+            if hasPairedSlotOnFloor slot floorSet then
+                isValid
+            elif (isMic slot) && floorHasAnyGen then
+                false
+            else
+                isValid
+        else
+            isValid
+        ) true floorSet
+;;
+
+let expandEntries history frontier entry =
+    let slotsOnFloor = Set.toList entry.state.floors.[entry.state.elevatorFloor] in
+    let allCombinationsOnFloor = Seq.fold (fun sets carry -> sets @ (getEachN carry slotsOnFloor)) [] (seq { 1 .. MAX_CARRY }) in
+    let addEntryIfValid elevatorOffset entriesSoFar slotsToMove =
+        assert (elevatorOffset = 1 || elevatorOffset = -1);
+        let elevatorFloorAfterMove = entry.state.elevatorFloor + elevatorOffset in
+        if elevatorFloorAfterMove >= 0 && elevatorFloorAfterMove < (Array.length entry.state.floors) then
+            let sourceFloorSet = List.fold (fun floorSet slot -> Set.remove slot floorSet) entry.state.floors.[entry.state.elevatorFloor] slotsToMove in
+            if isFloorSafe sourceFloorSet then
+                let destFloorSet = List.fold (fun floorSet slot -> Set.add slot floorSet) entry.state.floors.[elevatorFloorAfterMove] slotsToMove in
+                if isFloorSafe destFloorSet then
+                    let floorsAfterMove = Array.copy floors in
+                    let _ = floorsAfterMove.[entry.state.elevatorFloor] <- sourceFloorSet in
+                    let _ = floorsAfterMove.[elevatorFloorAfterMove] <- destFloorSet in
+                    let newHistoryEntry = createHistoryEntry { floors = floorsAfterMove; elevatorFloor = elevatorFloorAfterMove; numMoves = entry.state.numMoves + 1 } in
+                    if List.exists (fun existingHistoryEntry -> existingHistoryEntry.hash = newHistoryEntry.hash) history ||
+                       List.exists (fun existingHistoryEntry -> existingHistoryEntry.hash = newHistoryEntry.hash) frontier then
+                           entriesSoFar
+                    else
+                        newHistoryEntry :: entriesSoFar
+                else
+                    entriesSoFar
+            else
+                entriesSoFar
+        else
+            entriesSoFar
+    in
+    let minusOneEntries = List.fold (addEntryIfValid -1) [] allCombinationsOnFloor in
+    List.fold (addEntryIfValid 1) minusOneEntries allCombinationsOnFloor
+;;
 
 let bfs history frontier =
     match frontier with
     | [] -> raise (Ex "empty frontier!")
     | nextEntryToExpand :: restOfFrontier ->
-        let expandEntries entry =
         in
         let expandedEntries = expandEntries nextEntryToExpand in
         bfs (nextEntryToExpand :: history) (restOfFrontier @ expandEntries)
