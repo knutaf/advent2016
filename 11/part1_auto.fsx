@@ -2,10 +2,6 @@ open System;;
 
 exception Ex of string;;
 
-type 'a tup =
-    | Tuple of 'a list
-;;
-
 let rec getAllSublists minLength ls =
     if (List.length ls) > minLength then
         match ls with
@@ -53,6 +49,8 @@ type Element =
 | B
 | R
 | F
+| E
+| D
 ;;
 
 type Slot =
@@ -75,6 +73,10 @@ let ORDERED_SLOTS =
         Mic R;
         Gen F;
         Mic F;
+        Gen E;
+        Mic E;
+        Gen D;
+        Mic D;
     |]
 ;;
 
@@ -82,7 +84,7 @@ let INITIAL_STATE =
     {
         floors =
             [|
-                Set.ofList [ Gen P; Mic P ];
+                Set.ofList [ Gen P; Mic P; Gen E; Mic E; Gen D; Mic D ];
                 Set.ofList [ Gen C; Gen B; Gen R; Gen F ];
                 Set.ofList [ Mic C; Mic B; Mic R; Mic F ];
                 Set.empty<Slot>
@@ -153,6 +155,8 @@ let string_from_slot slot =
         | B -> "B"
         | R -> "R"
         | F -> "F"
+        | E -> "E"
+        | D -> "D"
     in
     match slot with
     | Gen(e) -> (string_from_element e) + "G"
@@ -303,7 +307,13 @@ let expandEntries history frontier entry =
 
 let FINAL_ENTRY = createHistoryEntry FINAL_STATE None;;
 
-let rec bfs history frontier =
+let rec bfs history historySize frontier frontierSize =
+    let _ =
+        if (historySize % 10000) = 0 then
+            printfn "historySize %d, frontierSize %d" historySize frontierSize
+        else
+            ()
+    in
     match frontier with
     | [] ->
         printfn "history: %A" history;
@@ -312,12 +322,12 @@ let rec bfs history frontier =
         let expandedEntries = expandEntries history frontier nextEntryToExpand in
         let foundFinalEntry = findEquivalentHistoryEntryInList FINAL_ENTRY expandedEntries in
         if foundFinalEntry.IsNone then
-            bfs (nextEntryToExpand :: history) (restOfFrontier @ expandedEntries)
+            bfs (nextEntryToExpand :: history) (historySize + 1) (restOfFrontier @ expandedEntries) (frontierSize + (List.length expandedEntries) - 1)
         else
             foundFinalEntry.Value
 ;;
 
-let finalHistoryEntry = bfs [] [ createHistoryEntry INITIAL_STATE None ] in
+let finalHistoryEntry = bfs [] 0 [ createHistoryEntry INITIAL_STATE None ] 1 in
 drawHistory finalHistoryEntry
 ;;
 

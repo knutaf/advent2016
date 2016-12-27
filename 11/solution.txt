@@ -1,0 +1,348 @@
+Moves: 57
+F4 E  PG PM CG CM BG BM RG RM FG FM EG EM DG DM
+F3 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 56
+F4 .  PG PM CG CM BG BM RG RM FG FM EG  . DG  .
+F3 E   .  .  .  .  .  .  .  .  .  .  . EM  . DM
+F2 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 55
+F4 .  PG PM CG CM BG BM RG RM FG FM EG  . DG  .
+F3 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F2 E   .  .  .  .  .  .  .  .  .  .  . EM  . DM
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 54
+F4 .  PG PM CG CM BG BM RG RM FG FM EG  . DG  .
+F3 E   .  .  .  .  .  .  .  .  .  .  .  .  . DM
+F2 .   .  .  .  .  .  .  .  .  .  .  . EM  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 53
+F4 E  PG PM CG CM BG BM RG RM FG FM EG  . DG DM
+F3 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  .  .  . EM  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 52
+F4 .  PG  . CG CM BG BM RG RM FG FM EG  . DG  .
+F3 E   . PM  .  .  .  .  .  .  .  .  .  .  . DM
+F2 .   .  .  .  .  .  .  .  .  .  .  . EM  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 51
+F4 E  PG  . CG CM BG BM RG RM FG FM EG  . DG DM
+F3 .   . PM  .  .  .  .  .  .  .  .  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  .  .  . EM  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 50
+F4 .   .  . CG CM BG BM RG RM FG FM  .  . DG DM
+F3 E  PG PM  .  .  .  .  .  .  .  . EG  .  .  .
+F2 .   .  .  .  .  .  .  .  .  .  .  . EM  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 49
+F4 .   .  . CG CM BG BM RG RM FG FM  .  . DG DM
+F3 .   . PM  .  .  .  .  .  .  .  .  .  .  .  .
+F2 E  PG  .  .  .  .  .  .  .  .  . EG EM  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 48
+F4 .   .  . CG CM BG BM RG RM FG FM  .  . DG DM
+F3 E  PG PM  .  .  .  .  .  .  .  .  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  .  . EG EM  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 47
+F4 E  PG  . CG CM BG BM RG RM FG FM  .  . DG DM
+F3 .   . PM  .  .  .  .  .  .  .  .  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  .  . EG EM  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 46
+F4 .  PG  . CG CM BG BM RG RM FG  .  .  . DG  .
+F3 E   . PM  .  .  .  .  .  .  . FM  .  .  . DM
+F2 .   .  .  .  .  .  .  .  .  .  . EG EM  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 45
+F4 E  PG  . CG CM BG BM RG RM FG  .  .  . DG DM
+F3 .   . PM  .  .  .  .  .  .  . FM  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  .  . EG EM  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 44
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 E  PG PM  .  .  .  .  .  . FG FM  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  .  . EG EM  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 43
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 .   . PM  .  .  .  .  .  .  . FM  .  .  .  .
+F2 E  PG  .  .  .  .  .  .  . FG  . EG EM  .  .
+F1 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 42
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 .   . PM  .  .  .  .  .  .  . FM  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  .  . EG EM  .  .
+F1 E  PG  .  .  .  .  .  .  . FG  .  .  .  .  .
+
+Moves: 41
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 .   . PM  .  .  .  .  .  .  . FM  .  .  .  .
+F2 E   .  .  .  .  .  .  .  . FG  . EG EM  .  .
+F1 .  PG  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+Moves: 40
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 .   . PM  .  .  .  .  .  .  . FM  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  .  .  . EM  .  .
+F1 E  PG  .  .  .  .  .  .  . FG  . EG  .  .  .
+
+Moves: 39
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 .   . PM  .  .  .  .  .  .  . FM  .  .  .  .
+F2 E   .  .  .  .  .  .  .  .  .  . EG EM  .  .
+F1 .  PG  .  .  .  .  .  .  . FG  .  .  .  .  .
+
+Moves: 38
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 .   . PM  .  .  .  .  .  .  . FM  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F1 E  PG  .  .  .  .  .  .  . FG  . EG EM  .  .
+
+Moves: 37
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 .   . PM  .  .  .  .  .  .  . FM  .  .  .  .
+F2 E   .  .  .  .  .  .  .  .  .  .  . EM  .  .
+F1 .  PG  .  .  .  .  .  .  . FG  . EG  .  .  .
+
+Moves: 36
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 E   . PM  .  .  .  .  .  .  . FM  . EM  .  .
+F2 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F1 .  PG  .  .  .  .  .  .  . FG  . EG  .  .  .
+
+Moves: 35
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 .   .  .  .  .  .  .  .  .  . FM  .  .  .  .
+F2 E   . PM  .  .  .  .  .  .  .  .  . EM  .  .
+F1 .  PG  .  .  .  .  .  .  . FG  . EG  .  .  .
+
+Moves: 34
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 .   .  .  .  .  .  .  .  .  . FM  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F1 E  PG PM  .  .  .  .  .  . FG  . EG EM  .  .
+
+Moves: 33
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 .   .  .  .  .  .  .  .  .  . FM  .  .  .  .
+F2 E   .  .  .  .  .  .  .  . FG  .  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 32
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 E   .  .  .  .  .  .  .  . FG FM  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 31
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F2 E   .  .  .  .  .  .  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 30
+F4 .   .  . CG CM BG BM RG RM  .  .  .  . DG DM
+F3 E   .  .  .  .  .  .  .  . FG  .  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  . FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 29
+F4 E   .  . CG CM BG BM RG RM FG  .  .  . DG DM
+F3 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  . FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 28
+F4 .   .  . CG  . BG BM RG RM FG  .  .  . DG  .
+F3 E   .  .  . CM  .  .  .  .  .  .  .  .  . DM
+F2 .   .  .  .  .  .  .  .  .  . FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 27
+F4 E   .  . CG  . BG BM RG RM FG  .  .  . DG DM
+F3 .   .  .  . CM  .  .  .  .  .  .  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  . FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 26
+F4 .   .  .  .  . BG BM RG RM  .  .  .  . DG DM
+F3 E   .  . CG CM  .  .  .  . FG  .  .  .  .  .
+F2 .   .  .  .  .  .  .  .  .  . FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 25
+F4 .   .  .  .  . BG BM RG RM  .  .  .  . DG DM
+F3 .   .  .  . CM  .  .  .  .  .  .  .  .  .  .
+F2 E   .  . CG  .  .  .  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 24
+F4 .   .  .  .  . BG BM RG RM  .  .  .  . DG DM
+F3 E   .  . CG CM  .  .  .  .  .  .  .  .  .  .
+F2 .   .  .  .  .  .  .  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 23
+F4 E   .  . CG  . BG BM RG RM  .  .  .  . DG DM
+F3 .   .  .  . CM  .  .  .  .  .  .  .  .  .  .
+F2 .   .  .  .  .  .  .  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 22
+F4 .   .  . CG  . BG  . RG RM  .  .  .  . DG  .
+F3 E   .  .  . CM  . BM  .  .  .  .  .  .  . DM
+F2 .   .  .  .  .  .  .  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 21
+F4 E   .  . CG  . BG  . RG RM  .  .  .  . DG DM
+F3 .   .  .  . CM  . BM  .  .  .  .  .  .  .  .
+F2 .   .  .  .  .  .  .  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 20
+F4 .   .  .  .  .  .  . RG RM  .  .  .  . DG DM
+F3 E   .  . CG CM BG BM  .  .  .  .  .  .  .  .
+F2 .   .  .  .  .  .  .  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 19
+F4 .   .  .  .  .  .  . RG RM  .  .  .  . DG DM
+F3 .   .  .  . CM  . BM  .  .  .  .  .  .  .  .
+F2 E   .  . CG  . BG  .  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 18
+F4 .   .  .  .  .  .  . RG RM  .  .  .  . DG DM
+F3 E   .  .  . CM  . BM  .  .  . FM  .  .  .  .
+F2 .   .  . CG  . BG  .  .  . FG  .  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 17
+F4 .   .  .  .  .  .  . RG RM  .  .  .  . DG DM
+F3 .   .  .  . CM  .  .  .  .  .  .  .  .  .  .
+F2 E   .  . CG  . BG BM  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 16
+F4 .   .  .  .  .  .  . RG RM  .  .  .  . DG DM
+F3 E   .  . CG CM  .  .  .  .  .  .  .  .  .  .
+F2 .   .  .  .  . BG BM  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 15
+F4 E   .  . CG  .  .  . RG RM  .  .  .  . DG DM
+F3 .   .  .  . CM  .  .  .  .  .  .  .  .  .  .
+F2 .   .  .  .  . BG BM  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 14
+F4 .   .  . CG  .  .  . RG  .  .  .  .  . DG  .
+F3 E   .  .  . CM  .  .  . RM  .  .  .  .  . DM
+F2 .   .  .  .  . BG BM  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 13
+F4 E   .  . CG  .  .  . RG RM  .  .  .  . DG  .
+F3 .   .  .  . CM  .  .  .  .  .  .  .  .  . DM
+F2 .   .  .  .  . BG BM  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 12
+F4 .   .  .  .  .  .  . RG RM  .  .  .  .  .  .
+F3 E   .  . CG CM  .  .  .  .  .  .  .  . DG DM
+F2 .   .  .  .  . BG BM  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 11
+F4 E   .  .  .  .  .  . RG RM  .  .  .  . DG DM
+F3 .   .  . CG CM  .  .  .  .  .  .  .  .  .  .
+F2 .   .  .  .  . BG BM  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 10
+F4 .   .  .  .  .  .  .  . RM  .  .  .  .  . DM
+F3 E   .  . CG CM  .  . RG  .  .  .  .  . DG  .
+F2 .   .  .  .  . BG BM  .  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 9
+F4 .   .  .  .  .  .  .  . RM  .  .  .  .  . DM
+F3 .   .  . CG CM  .  .  .  .  .  .  .  .  .  .
+F2 E   .  .  .  . BG BM RG  . FG FM  .  . DG  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 8
+F4 .   .  .  .  .  .  .  . RM  .  .  .  .  . DM
+F3 E   .  . CG CM  .  .  .  .  .  .  .  . DG  .
+F2 .   .  .  .  . BG BM RG  . FG FM  .  .  .  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 7
+F4 .   .  .  .  .  .  .  . RM  .  .  .  .  . DM
+F3 .   .  .  . CM  .  .  .  .  .  .  .  .  .  .
+F2 E   .  . CG  . BG BM RG  . FG FM  .  . DG  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 6
+F4 .   .  .  .  .  .  .  . RM  .  .  .  .  . DM
+F3 E   .  .  . CM  . BM  .  .  . FM  .  .  .  .
+F2 .   .  . CG  . BG  . RG  . FG  .  .  . DG  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 5
+F4 E   .  .  .  .  .  .  . RM  . FM  .  .  . DM
+F3 .   .  .  . CM  . BM  .  .  .  .  .  .  .  .
+F2 .   .  . CG  . BG  . RG  . FG  .  .  . DG  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 4
+F4 .   .  .  .  .  .  .  .  .  .  .  .  .  . DM
+F3 E   .  .  . CM  . BM  . RM  . FM  .  .  .  .
+F2 .   .  . CG  . BG  . RG  . FG  .  .  . DG  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 3
+F4 E   .  .  .  .  .  .  .  .  . FM  .  .  . DM
+F3 .   .  .  . CM  . BM  . RM  .  .  .  .  .  .
+F2 .   .  . CG  . BG  . RG  . FG  .  .  . DG  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 2
+F4 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F3 E   .  .  . CM  . BM  . RM  . FM  .  .  . DM
+F2 .   .  . CG  . BG  . RG  . FG  .  .  . DG  .
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 1
+F4 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F3 .   .  .  . CM  . BM  . RM  . FM  .  .  .  .
+F2 E   .  . CG  . BG  . RG  . FG  .  .  . DG DM
+F1 .  PG PM  .  .  .  .  .  .  .  . EG EM  .  .
+
+Moves: 0
+F4 .   .  .  .  .  .  .  .  .  .  .  .  .  .  .
+F3 .   .  .  . CM  . BM  . RM  . FM  .  .  .  .
+F2 .   .  . CG  . BG  . RG  . FG  .  .  .  .  .
+F1 E  PG PM  .  .  .  .  .  .  .  . EG EM DG DM
+
