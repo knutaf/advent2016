@@ -35,15 +35,18 @@ let rec getEachN n ls =
                     nLists @ (getEachNHelper (indent + "  ") origN n (List.tail ls))
                 else
                     nLists
-        else
+        elif n <> origN then
             [[List.head ls]]
+        else
+            List.map (fun elem -> [elem]) ls
     in
     let tuples = getEachNHelper "" n n ls in
     let _ = List.iter (fun t -> assert ((List.length t) = n)) in
     tuples
 ;;
 
-let NUM_ELEMENTS = 5;;
+let MAX_CARRY = 2;;
+
 type Element =
 | P
 | C
@@ -57,8 +60,10 @@ type Slot =
 | Mic of Element
 ;;
 
-let MAX_CARRY = 2;;
+type State = { floors : Set<Slot>[]; elevatorFloor : int; numMoves : int };;
+type HistoryEntry = { state : State; hash : uint64 };;
 
+(*
 let ORDERED_SLOTS =
     [|
         Gen P;
@@ -74,8 +79,71 @@ let ORDERED_SLOTS =
     |]
 ;;
 
-type State = { floors : Set<Slot>[]; elevatorFloor : int; numMoves : int };;
-type HistoryEntry = { state : State; hash : uint64 };;
+let INITIAL_STATE =
+    {
+        floors =
+            [|
+                Set.ofList [ Gen P; Mic P ];
+                Set.ofList [ Gen C; Gen B; Gen R; Gen F ];
+                Set.ofList [ Mic C; Mic B; Mic R; Mic F ];
+                Set.empty<Slot>
+            |];
+        elevatorFloor = 0;
+        numMoves = 0;
+    }
+;;
+
+let FINAL_STATE =
+    {
+        floors =
+            [|
+                Set.empty<Slot>;
+                Set.empty<Slot>;
+                Set.empty<Slot>;
+                Set.ofArray ORDERED_SLOTS
+            |];
+        elevatorFloor = 3;
+        numMoves = 0;
+    }
+;;
+*)
+
+let ORDERED_SLOTS =
+    [|
+        Gen P;
+        Mic P;
+        Gen B;
+        Mic B;
+    |]
+;;
+
+let INITIAL_STATE =
+    {
+        floors =
+            [|
+                Set.ofList [ Mic P; Mic B ];
+                Set.ofList [ Gen P; ];
+                Set.ofList [ Gen B; ];
+                Set.empty<Slot>
+            |];
+        elevatorFloor = 0;
+        numMoves = 0;
+    }
+;;
+
+let FINAL_STATE =
+    {
+        floors =
+            [|
+                Set.empty<Slot>;
+                Set.empty<Slot>;
+                Set.empty<Slot>;
+                Set.ofArray ORDERED_SLOTS
+            |];
+        elevatorFloor = 3;
+        numMoves = 0;
+    }
+;;
 
 let string_from_slot slot =
     let string_from_element element =
@@ -174,69 +242,9 @@ let createHistoryEntry state =
     { state = state; hash = calculateHash state }
 ;;
 
-let tryPlacing (floors : Set<Slot>[]) elevatorFloor r selectedSlots =
-    let checkFloor floorSet =
-        let floorHasAnyGen = Set.exists isGen floorSet in
-        Set.fold (fun errorMessage slot ->
-            if errorMessage = "" then
-                if hasPairedSlotOnFloor slot floorSet then
-                    ""
-                elif (isMic slot) && floorHasAnyGen then
-                    sprintf "slot %A is unsafe" slot
-                else
-                    ""
-            else
-                errorMessage
-            ) "" floorSet
-    in
-    let slotsList = Set.toList selectedSlots in
-    let sourceFloorSet = List.fold (fun floorSet slot -> Set.remove slot floorSet) floors.[elevatorFloor] slotsList in
-    let destFloorSet = List.fold (fun floorSet slot -> Set.add slot floorSet) floors.[r] slotsList in
-    let errorMessage =
-        let sourceErrorMessage = checkFloor sourceFloorSet in
-        if sourceErrorMessage = "" then
-            checkFloor destFloorSet
-        else
-            sourceErrorMessage
-    in
-    if errorMessage = "" then
-        let newFloors = Array.copy floors in
-        let _ = newFloors.[elevatorFloor] <- sourceFloorSet in
-        let _ = newFloors.[r] <- destFloorSet in
-        (newFloors, r, Set.empty<Slot>, errorMessage)
-    else
-        (floors, elevatorFloor, selectedSlots, errorMessage)
+let findEquivalentHistoryEntryInList entry =
+    List.tryFind (fun existingHistoryEntry -> existingHistoryEntry.hash = entry.hash)
 ;;
-
-let INITIAL_STATE =
-    {
-        floors =
-            [|
-                Set.ofList [ Gen P; Mic P ];
-                Set.ofList [ Gen C; Gen B; Gen R; Gen F ];
-                Set.ofList [ Mic C; Mic B; Mic R; Mic F ];
-                Set.empty<Slot>
-            |];
-        elevatorFloor = 0;
-        numMoves = 0;
-    }
-;;
-
-let FINAL_STATE =
-    {
-        floors =
-            [|
-                Set.empty<Slot>;
-                Set.empty<Slot>;
-                Set.empty<Slot>;
-                Set.ofArray ORDERED_SLOTS
-            |];
-        elevatorFloor = 3;
-        numMoves = 0;
-    }
-;;
-
-let FINAL_ENTRY = createHistoryEntry FINAL_STATE;;
 
 let isFloorSafe floorSet =
     let floorHasAnyGen = Set.exists isGen floorSet in
@@ -256,6 +264,7 @@ let isFloorSafe floorSet =
 let expandEntries history frontier entry =
     let slotsOnFloor = Set.toList entry.state.floors.[entry.state.elevatorFloor] in
     let allCombinationsOnFloor = Seq.fold (fun sets carry -> sets @ (getEachN carry slotsOnFloor)) [] (seq { 1 .. MAX_CARRY }) in
+    let _ = printfn "all combos: %A" allCombinationsOnFloor in
     let addEntryIfValid elevatorOffset entriesSoFar slotsToMove =
         assert (elevatorOffset = 1 || elevatorOffset = -1);
         let elevatorFloorAfterMove = entry.state.elevatorFloor + elevatorOffset in
@@ -264,15 +273,15 @@ let expandEntries history frontier entry =
             if isFloorSafe sourceFloorSet then
                 let destFloorSet = List.fold (fun floorSet slot -> Set.add slot floorSet) entry.state.floors.[elevatorFloorAfterMove] slotsToMove in
                 if isFloorSafe destFloorSet then
-                    let floorsAfterMove = Array.copy floors in
+                    let floorsAfterMove = Array.copy entry.state.floors in
                     let _ = floorsAfterMove.[entry.state.elevatorFloor] <- sourceFloorSet in
                     let _ = floorsAfterMove.[elevatorFloorAfterMove] <- destFloorSet in
                     let newHistoryEntry = createHistoryEntry { floors = floorsAfterMove; elevatorFloor = elevatorFloorAfterMove; numMoves = entry.state.numMoves + 1 } in
-                    if List.exists (fun existingHistoryEntry -> existingHistoryEntry.hash = newHistoryEntry.hash) history ||
-                       List.exists (fun existingHistoryEntry -> existingHistoryEntry.hash = newHistoryEntry.hash) frontier then
-                           entriesSoFar
-                    else
+                    if (findEquivalentHistoryEntryInList newHistoryEntry history).IsNone &&
+                       (findEquivalentHistoryEntryInList newHistoryEntry frontier).IsNone then
                         newHistoryEntry :: entriesSoFar
+                    else
+                       entriesSoFar
                 else
                     entriesSoFar
             else
@@ -284,15 +293,28 @@ let expandEntries history frontier entry =
     List.fold (addEntryIfValid 1) minusOneEntries allCombinationsOnFloor
 ;;
 
-let bfs history frontier =
+let FINAL_ENTRY = createHistoryEntry FINAL_STATE;;
+
+let rec bfs history frontier =
     match frontier with
-    | [] -> raise (Ex "empty frontier!")
+    | [] ->
+        printfn "history: %A" history;
+        raise (Ex "empty frontier!")
     | nextEntryToExpand :: restOfFrontier ->
-        in
-        let expandedEntries = expandEntries nextEntryToExpand in
-        bfs (nextEntryToExpand :: history) (restOfFrontier @ expandEntries)
+        let expandedEntries = expandEntries history frontier nextEntryToExpand in
+        let foundFinalEntry = findEquivalentHistoryEntryInList FINAL_ENTRY expandedEntries in
+        if foundFinalEntry.IsNone then
+            bfs (nextEntryToExpand :: history) (restOfFrontier @ expandedEntries)
+        else
+            foundFinalEntry.Value
 ;;
 
+(*
 let finalHistoryEntry = bfs [] [ createHistoryEntry INITIAL_STATE ] in
 drawState finalHistoryEntry.state
+;;
+*)
+
+let expanded = (expandEntries [] [] (createHistoryEntry INITIAL_STATE)) in
+List.iter (fun entry -> drawState entry.state) expanded
 ;;
