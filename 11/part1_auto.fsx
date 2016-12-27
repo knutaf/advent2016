@@ -63,7 +63,6 @@ type Slot =
 type State = { floors : Set<Slot>[]; elevatorFloor : int; numMoves : int };;
 type HistoryEntry = { state : State; parent : HistoryEntry option; hash : uint64 };;
 
-(*
 let ORDERED_SLOTS =
     [|
         Gen P;
@@ -106,8 +105,8 @@ let FINAL_STATE =
         numMoves = 0;
     }
 ;;
-*)
 
+(*
 let ORDERED_SLOTS =
     [|
         Gen P;
@@ -144,6 +143,7 @@ let FINAL_STATE =
         numMoves = 0;
     }
 ;;
+*)
 
 let string_from_slot slot =
     let string_from_element element =
