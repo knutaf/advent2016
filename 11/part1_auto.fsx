@@ -94,20 +94,6 @@ let INITIAL_STATE =
     }
 ;;
 
-let FINAL_STATE =
-    {
-        floors =
-            [|
-                Set.empty<Slot>;
-                Set.empty<Slot>;
-                Set.empty<Slot>;
-                Set.ofArray ORDERED_SLOTS
-            |];
-        elevatorFloor = 3;
-        numMoves = 0;
-    }
-;;
-
 (*
 let ORDERED_SLOTS =
     [|
@@ -131,6 +117,7 @@ let INITIAL_STATE =
         numMoves = 0;
     }
 ;;
+*)
 
 let FINAL_STATE =
     {
@@ -145,7 +132,6 @@ let FINAL_STATE =
         numMoves = 0;
     }
 ;;
-*)
 
 let string_from_slot slot =
     let string_from_element element =
@@ -163,25 +149,25 @@ let string_from_slot slot =
     | Mic(e) -> (string_from_element e) + "M"
 ;;
 
-let drawState state =
+let drawHistoryEntry entry =
     let printFloor floorNum =
-        let floorSet = state.floors.[floorNum] in
+        let floorSet = entry.state.floors.[floorNum] in
         let printSlot slotNum slot =
             printf
                 "%2s "
                 (if Set.contains slot floorSet then (string_from_slot slot) else ".")
         in
-        let _ = printf "F%d %s  " (floorNum + 1) (if state.elevatorFloor = floorNum then "E" else ".") in
+        let _ = printf "F%d %s  " (floorNum + 1) (if entry.state.elevatorFloor = floorNum then "E" else ".") in
         let _ = Array.iteri printSlot ORDERED_SLOTS in
         printfn ""
     in
-    let _ = printfn "Moves: %d" state.numMoves in
-    let _ = (for floorNum = ((Array.length state.floors) - 1) downto 0 do printFloor floorNum) in
+    let _ = printfn "Moves: %d. Hash: %u" entry.state.numMoves entry.hash in
+    let _ = (for floorNum = ((Array.length entry.state.floors) - 1) downto 0 do printFloor floorNum) in
     printfn ""
 ;;
 
 let rec drawHistory historyEntry =
-    drawState historyEntry.state;
+    drawHistoryEntry historyEntry;
     match historyEntry.parent with
     | None -> ()
     | Some parentEntry -> drawHistory parentEntry
@@ -337,6 +323,6 @@ drawHistory finalHistoryEntry
 
 (*
 let expanded = (expandEntries [] [] (createHistoryEntry INITIAL_STATE)) in
-List.iter (fun entry -> drawState entry.state) expanded
+List.iter (fun entry -> drawHistoryEntry entry) expanded
 ;;
 *)
