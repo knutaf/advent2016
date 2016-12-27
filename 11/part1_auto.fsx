@@ -61,7 +61,7 @@ type Slot =
 ;;
 
 type State = { floors : Set<Slot>[]; elevatorFloor : int; numMoves : int };;
-type HistoryEntry = { state : State; hash : uint64 };;
+type HistoryEntry = { state : State; parent : HistoryEntry option; hash : uint64 };;
 
 (*
 let ORDERED_SLOTS =
@@ -172,7 +172,15 @@ let drawState state =
         printfn ""
     in
     let _ = printfn "Moves: %d" state.numMoves in
-    for floorNum = ((Array.length state.floors) - 1) downto 0 do printFloor floorNum
+    let _ = (for floorNum = ((Array.length state.floors) - 1) downto 0 do printFloor floorNum) in
+    printfn ""
+;;
+
+let rec drawHistory historyEntry =
+    drawState historyEntry.state;
+    match historyEntry.parent with
+    | None -> ()
+    | Some parentEntry -> drawHistory parentEntry
 ;;
 
 let elemFromSlot slot =
@@ -238,8 +246,8 @@ let calculateHash state =
     Seq.fold addFloorToHash 0UL (seq { 0 .. ((Array.length state.floors) - 1)})
 ;;
 
-let createHistoryEntry state =
-    { state = state; hash = calculateHash state }
+let createHistoryEntry state parent =
+    { state = state; parent = parent; hash = calculateHash state }
 ;;
 
 let findEquivalentHistoryEntryInList entry =
@@ -264,7 +272,7 @@ let isFloorSafe floorSet =
 let expandEntries history frontier entry =
     let slotsOnFloor = Set.toList entry.state.floors.[entry.state.elevatorFloor] in
     let allCombinationsOnFloor = Seq.fold (fun sets carry -> sets @ (getEachN carry slotsOnFloor)) [] (seq { 1 .. MAX_CARRY }) in
-    let _ = printfn "all combos: %A" allCombinationsOnFloor in
+    (*let _ = printfn "all combos: %A" allCombinationsOnFloor in*)
     let addEntryIfValid elevatorOffset entriesSoFar slotsToMove =
         assert (elevatorOffset = 1 || elevatorOffset = -1);
         let elevatorFloorAfterMove = entry.state.elevatorFloor + elevatorOffset in
@@ -276,7 +284,7 @@ let expandEntries history frontier entry =
                     let floorsAfterMove = Array.copy entry.state.floors in
                     let _ = floorsAfterMove.[entry.state.elevatorFloor] <- sourceFloorSet in
                     let _ = floorsAfterMove.[elevatorFloorAfterMove] <- destFloorSet in
-                    let newHistoryEntry = createHistoryEntry { floors = floorsAfterMove; elevatorFloor = elevatorFloorAfterMove; numMoves = entry.state.numMoves + 1 } in
+                    let newHistoryEntry = createHistoryEntry { floors = floorsAfterMove; elevatorFloor = elevatorFloorAfterMove; numMoves = entry.state.numMoves + 1 } (Some entry) in
                     if (findEquivalentHistoryEntryInList newHistoryEntry history).IsNone &&
                        (findEquivalentHistoryEntryInList newHistoryEntry frontier).IsNone then
                         newHistoryEntry :: entriesSoFar
@@ -293,7 +301,7 @@ let expandEntries history frontier entry =
     List.fold (addEntryIfValid 1) minusOneEntries allCombinationsOnFloor
 ;;
 
-let FINAL_ENTRY = createHistoryEntry FINAL_STATE;;
+let FINAL_ENTRY = createHistoryEntry FINAL_STATE None;;
 
 let rec bfs history frontier =
     match frontier with
@@ -309,12 +317,12 @@ let rec bfs history frontier =
             foundFinalEntry.Value
 ;;
 
-(*
-let finalHistoryEntry = bfs [] [ createHistoryEntry INITIAL_STATE ] in
-drawState finalHistoryEntry.state
+let finalHistoryEntry = bfs [] [ createHistoryEntry INITIAL_STATE None ] in
+drawHistory finalHistoryEntry
 ;;
-*)
 
+(*
 let expanded = (expandEntries [] [] (createHistoryEntry INITIAL_STATE)) in
 List.iter (fun entry -> drawState entry.state) expanded
 ;;
+*)
