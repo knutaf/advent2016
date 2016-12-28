@@ -244,10 +244,6 @@ let findEquivalentHistoryEntryInList entry =
     List.tryFind (fun existingHistoryEntry -> existingHistoryEntry.hash = entry.hash)
 ;;
 
-let findEquivalentHistoryEntryInMap entry =
-    Map.tryFind entry.hash
-;;
-
 let isFloorSafe floorSet =
     let floorHasAnyGen = Set.exists isGen floorSet in
     Set.fold (fun isValid slot ->
@@ -279,7 +275,7 @@ let expandEntries history frontier entry =
                     let _ = floorsAfterMove.[entry.state.elevatorFloor] <- sourceFloorSet in
                     let _ = floorsAfterMove.[elevatorFloorAfterMove] <- destFloorSet in
                     let newHistoryEntry = createHistoryEntry { floors = floorsAfterMove; elevatorFloor = elevatorFloorAfterMove; numMoves = entry.state.numMoves + 1 } (Some entry) in
-                    if (findEquivalentHistoryEntryInMap newHistoryEntry history).IsNone &&
+                    if not (Set.contains newHistoryEntry.hash history) &&
                        (findEquivalentHistoryEntryInList newHistoryEntry frontier).IsNone then
                         newHistoryEntry :: entriesSoFar
                     else
@@ -297,10 +293,10 @@ let expandEntries history frontier entry =
 
 let FINAL_ENTRY = createHistoryEntry FINAL_STATE None;;
 
-let rec bfs history frontier frontierSize =
+let rec bfs iterations history frontier frontierSize =
     let _ =
-        if ((Map.count history) % 10000) = 0 then
-            printfn "historySize %d, frontierSize %d" (Map.count history) frontierSize
+        if (iterations % 1000) = 0 then
+            printfn "historySize %d, numMoves here %d" (Set.count history) (List.head frontier).state.numMoves
         else
             ()
     in
@@ -312,12 +308,12 @@ let rec bfs history frontier frontierSize =
         let expandedEntries = expandEntries history frontier nextEntryToExpand in
         let foundFinalEntry = findEquivalentHistoryEntryInList FINAL_ENTRY expandedEntries in
         if foundFinalEntry.IsNone then
-            bfs (Map.add nextEntryToExpand.hash nextEntryToExpand history) (restOfFrontier @ expandedEntries) (frontierSize + (List.length expandedEntries) - 1)
+            bfs (iterations + 1) (Set.add nextEntryToExpand.hash history) (restOfFrontier @ expandedEntries) (frontierSize + (List.length expandedEntries) - 1)
         else
             foundFinalEntry.Value
 ;;
 
-let finalHistoryEntry = bfs Map.empty [ createHistoryEntry INITIAL_STATE None ] 1 in
+let finalHistoryEntry = bfs 0 Set.empty [ createHistoryEntry INITIAL_STATE None ] 1 in
 drawHistory finalHistoryEntry
 ;;
 
