@@ -2,7 +2,7 @@ open System;;
 
 exception Ex of string;;
 
-let LOG_LEVEL = 0 in
+let LOG_LEVEL = 3 in
 let dbglog level fmt =
     let printer (s : string) =
         if level <= LOG_LEVEL then
@@ -26,7 +26,7 @@ let rec getAllSublists minLength ls =
 
 let rec getEachN n ls =
     let rec getEachNHelper indent origN n ls =
-        //dbglog 5 "%sgetEachNHelper %d %A" indent n ls;
+//        dbglog 5 "%sgetEachNHelper %d %A" indent n ls;
         if n > 1 then
             if (List.length ls) < n then
                 []
@@ -36,9 +36,9 @@ let rec getEachN n ls =
                 let sublists = getAllSublists 1 ls in
                 let nMinus1TupleLists = List.map (getEachNHelper (indent + "  ") origN (n - 1)) sublists in
                 let nMinus1Tuples = List.fold (fun sofar tupleList -> sofar @ tupleList) [] nMinus1TupleLists in
-                //let _ = dbglog 5 "%snMinus1Tuples = %A" indent nMinus1Tuples in
+//                let _ = dbglog 5 "%snMinus1Tuples = %A" indent nMinus1Tuples in
                 let nLists = List.map (fun t -> (List.head ls) :: t) nMinus1Tuples in
-                //let _ = dbglog 5 "%snLists = %A" indent nLists in
+//                let _ = dbglog 5 "%snLists = %A" indent nLists in
                 if n = origN then
                     nLists @ (getEachNHelper (indent + "  ") origN n (List.tail ls))
                 else
@@ -72,6 +72,7 @@ type Slot =
 
 type State = { floors : Set<Slot>[]; elevatorFloor : int; numMoves : int };;
 type HistoryEntry = { state : State; parent : HistoryEntry option; hash : uint64 };;
+type FrontierNode = { entry : HistoryEntry; mutable next : FrontierNode option };;
 
 let ORDERED_SLOTS =
     [|
@@ -243,6 +244,14 @@ let dbgDrawHistoryEntry level entry =
         ()
 ;;
 
+let rec dbgDrawFrontier level node =
+    match node.next with
+    | None -> ()
+    | Some next ->
+        let _ = dbgDrawHistoryEntry level node.entry in
+        dbgDrawFrontier level next
+;;
+
 let rec drawHistory historyEntry =
     drawHistoryEntry historyEntry;
     match historyEntry.parent with
@@ -286,94 +295,81 @@ let calculateHash state =
         Set.fold addElement (seenElements, numElementsSeen) floorSet
     in
     let (seenElements, _) = Array.fold addElementsFromFloor (Map.empty, 0) state.floors in
-    //let _ = dbglog 5 "seen elements: %A" seenElements in
+//    let _ = dbglog 5 "seen elements: %A" seenElements in
     let addFloorToHash hashSofar floorNum =
-        //let _ = dbglog 5 "addFloorToHash %u %d" hashSofar floorNum in
+//        let _ = dbglog 5 "addFloorToHash %u %d" hashSofar floorNum in
         let addSlotToHash hashSofar slot =
-            //let _ = dbglog 5 "addSlotToHash %u %A" hashSofar slot in
+//            let _ = dbglog 5 "addSlotToHash %u %A" hashSofar slot in
             let bitPosition =
-                (* +1 is for the elevator bit *)
-                floorNum * ((Array.length ORDERED_SLOTS) + 1) +
-                (* *2 is for having both Gen and Mic *)
-                ((Map.tryFind (elemFromSlot slot) seenElements).Value * 2) +
-                (if isGen slot then 1 else 0)
+                (* +2 is for the elevator value *)
+                2 +
+                floorNum * (Array.length ORDERED_SLOTS) +
+                (((Map.tryFind (elemFromSlot slot) seenElements).Value) *
+                 (if isGen slot then 2 else 1))
             in
             let _ = assert (bitPosition < 64) in
             hashSofar ||| (1UL <<< bitPosition)
         in
-        let addElevatorBitToHash hashSofar =
-            let bitPosition = floorNum * (Array.length ORDERED_SLOTS) in
-            let _ = assert (bitPosition < 64) in
-            hashSofar ||| (1UL <<< bitPosition)
-        in
-        let newHash = Set.fold addSlotToHash hashSofar state.floors.[floorNum] in
-        if floorNum = state.elevatorFloor then
-            addElevatorBitToHash newHash
-        else
-            newHash
+        Set.fold addSlotToHash hashSofar state.floors.[floorNum]
     in
-    Seq.fold addFloorToHash 0UL (seq { 0 .. ((Array.length state.floors) - 1)})
+    let addElevatorBitToHash hashSofar =
+        let _ = assert ((hashSofar &&& 3UL) = 0UL) in
+        hashSofar ||| (uint64 state.elevatorFloor)
+    in
+    let hashSoFar = Seq.fold addFloorToHash 0UL (seq { 0 .. ((Array.length state.floors) - 1)}) in
+    addElevatorBitToHash hashSoFar
 ;;
 
 let createHistoryEntry state parent =
     { state = state; parent = parent; hash = calculateHash state }
 ;;
 
-(* clears rest of list of entry after adding it
-let addHistoryEntryToList entry ls =
-    let rec helper added prior later =
-        match later with
-        | [] ->
-            if added then
-                prior
-            else
-                prior @ [entry]
-        | laterHead :: laterRest ->
-            if added then
-                if entry.hash = laterHead.hash then
-                    prior @ laterRest
-                else
-                    helper added (prior @ [laterHead]) laterRest
-            else
-                if entry.state.numMoves = laterHead.state.numMoves then
-                    if entry.hash = laterHead.hash then
-                        prior @ later
-                    elif entry.hash > laterHead.hash then
-                        helper true (prior @ [entry]) laterRest
-                    else
-                        helper added (prior @ [laterHead]) laterRest
-                elif entry.state.numMoves < laterHead.state.numMoves then
-                    helper true (prior @ [entry]) laterRest
-                else
-                    helper added (prior @ [laterHead]) laterRest
-    in
-    helper false [] ls
+let compareHistoryEntriesForFrontier entry1 entry2 =
+    if entry1.state.numMoves = entry2.state.numMoves then
+        if entry1.hash = entry2.hash then
+            0
+        elif entry1.hash > entry2.hash then
+            -1
+        else
+            1
+    elif entry1.state.numMoves < entry2.state.numMoves then
+        -1
+    else
+        1
 ;;
-*)
 
-let addHistoryEntryToList entry ls =
-    let rec helper prior later =
-        match later with
-        | [] ->
-            //let _ = dbglog 4 "adding at end of list" in
-            prior @ [entry]
-        | laterHead :: laterRest ->
-            if entry.state.numMoves = laterHead.state.numMoves then
-                if entry.hash = laterHead.hash then
-                    //let _ = dbglog 4 "found exact duplicate in list" in
-                    ls
-                elif entry.hash > laterHead.hash then
-                    //let _ = dbglog 4 "inserting before hash %u" laterHead.hash in
-                    prior @ (entry :: later)
-                else
-                    helper (prior @ [laterHead]) laterRest
-            elif entry.state.numMoves < laterHead.state.numMoves then
-                //let _ = dbglog 4 "inserting before first %d moves entry" laterHead.state.numMoves in
-                prior @ (entry :: later)
-            else
-                helper (prior @ [laterHead]) laterRest
+let rec frontierLength frontier =
+    let rec helper lengthSofar node =
+        match node.next with
+        | None -> lengthSofar + 1
+        | Some next -> helper (lengthSofar + 1) next
     in
-    helper [] ls
+    helper 0 frontier
+;;
+
+let addHistoryEntryToList entry frontier =
+    let rec insertSortedAfter node =
+        match node.next with
+        | None ->
+            node.next <- Some { entry = entry; next = None }
+        | Some next ->
+            let comparison = compareHistoryEntriesForFrontier entry next.entry in
+            if comparison = 0 then
+                ()
+            elif comparison < 0 then
+                let newNode = { entry = entry; next = node.next } in
+                node.next <- Some newNode
+            else
+                insertSortedAfter next
+    in
+    let headComparison = compareHistoryEntriesForFrontier entry frontier.entry in
+    if headComparison < 0 then
+        { entry = entry; next = Some frontier }
+    elif headComparison = 0 then
+        frontier
+    else
+        let _ = insertSortedAfter frontier in
+        frontier
 ;;
 
 let isFloorSafe floorSet =
@@ -391,7 +387,8 @@ let isFloorSafe floorSet =
         ) true floorSet
 ;;
 
-let expandEntries history frontier entry =
+let expandEntries history frontier =
+    let entry = frontier.entry in
     //let _ = dbglog 3 "expanding:" in
     //let _ = dbgDrawHistoryEntry 3 entry in
     let slotsOnFloor = Set.toList entry.state.floors.[entry.state.elevatorFloor] in
@@ -425,36 +422,31 @@ let expandEntries history frontier entry =
     let frontierWithMinusOneEntries = List.fold (addEntryIfValid -1) frontier allCombinationsOnFloor in
     let newFrontier = List.fold (addEntryIfValid 1) frontierWithMinusOneEntries allCombinationsOnFloor in
     //let _ = dbglog 3 "expanded frontier is:" in
-    //let _ = List.iter (dbgDrawHistoryEntry 3) newFrontier in
-    newFrontier
+    //let _ = dbgDrawFrontier 3 newFrontier in
+    newFrontier.next.Value
 ;;
 
 let FINAL_ENTRY = createHistoryEntry FINAL_STATE None;;
 
-let rec bfs history frontier =
+let rec bfs iterations history frontier =
     let _ =
-        if ((Set.count history) % 10) = 0 then
-            dbglog 0 "historySize %d, frontierSize %d" (Set.count history) (List.length frontier)
+        if (iterations % 1000UL) = 0UL then
+            //printfn "historySize %d, frontierSize %d" (Set.count history) (frontierLength frontier)
+            printfn "historySize %d. numMoves here: %d. hash here: %u" (Set.count history) frontier.entry.state.numMoves frontier.entry.hash
         else
             ()
     in
-    match frontier with
-    | [] ->
-        dbglog 0 "history: %A" history;
-        raise (Ex "empty frontier!")
-    | nextEntryToExpand :: restOfFrontier ->
-        if not (Set.contains nextEntryToExpand.hash history) then
-            let expandedFrontier = expandEntries history restOfFrontier nextEntryToExpand in
-            let maybeFinalEntry = (List.head expandedFrontier) in
-            if maybeFinalEntry.hash = FINAL_ENTRY.hash then
-                maybeFinalEntry
-            else
-                bfs (Set.add nextEntryToExpand.hash history) expandedFrontier
-        else
-            bfs history restOfFrontier
+    let nextEntryToExpand = frontier.entry in
+    if nextEntryToExpand.hash = FINAL_ENTRY.hash then
+        nextEntryToExpand
+    elif not (Set.contains nextEntryToExpand.hash history) then
+        let expandedFrontier = expandEntries history frontier in
+        bfs (iterations + 1UL) (Set.add nextEntryToExpand.hash history) expandedFrontier
+    else
+        bfs (iterations + 1UL) history frontier.next.Value
 ;;
 
-let finalHistoryEntry = bfs Set.empty [ createHistoryEntry INITIAL_STATE None ] in
+let finalHistoryEntry = bfs 0UL Set.empty {entry = createHistoryEntry INITIAL_STATE None; next = None }
 drawHistory finalHistoryEntry
 ;;
 
