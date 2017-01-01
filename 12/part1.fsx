@@ -53,7 +53,15 @@ let rec processLines programSoFar =
 ;;
 
 let rec runProgram program state =
-    state
+    if state.inst < (Array.length program) then
+        let newState =
+            match program.[state.inst] with
+            | CopyImmediate(value, reg) -> { inst = state.inst + 1; registers = (Map.add reg value state.registers) }
+            | _ -> { inst = state.inst + 1; registers = state.registers }
+        in
+        runProgram program newState
+    else
+        state
 ;;
 
 let REGISTERS =
