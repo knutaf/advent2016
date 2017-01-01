@@ -85,7 +85,7 @@ let expandEntry favoriteNumber history frontier entry =
 
 let rec bfs favoriteNumber targetPosition iterations history frontier =
     let _ =
-        if (iterations % 1) = 0 then
+        if (iterations % 100) = 0 then
             printfn "historySize %d, frontierSize %d, numMoves here %d" (Set.count history) (List.length frontier) (List.head frontier).state.numMoves
         else
             ()
