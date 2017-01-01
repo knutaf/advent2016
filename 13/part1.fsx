@@ -19,21 +19,51 @@ let isOpen favoriteNumber (x, y) =
     ((countBits calc) % 2) = 0
 ;;
 
-let printGrid favoriteNumber sizeX sizeY =
+let drawGrid favoriteNumber sizeX sizeY path =
+    let isOnPath x y =
+        List.exists ((=) (x, y)) path
+    in
     let printRow y =
+        let getStrForPos x y =
+            if (isOnPath x y) then
+                "O"
+            elif (isOpen favoriteNumber (x, y)) then
+                "."
+            else
+                "#"
+        in
         printf "%-2d " y;
-        for x = 0 to (sizeX - 1) do printf "%2s " (if (isOpen favoriteNumber (x, y)) then "." else "#");
+        for x = 0 to sizeX do printf "%2s " (getStrForPos x y);
         printfn ""
     in
     printf "   ";
-    for x = 0 to (sizeX - 1) do printf "%2d " x;
+    for x = 0 to sizeX do printf "%2d " x;
     printfn "";
-    for y = 0 to (sizeY - 1) do printRow y;
+    for y = 0 to sizeY do printRow y;
     printfn "";
 ;;
 
 type State = { pos : int * int; numMoves : int };;
 type HistoryEntry = { state : State; parent : HistoryEntry option };;
+
+let drawHistory favoriteNumber entry =
+    let rec getMaxPos (maxXSoFar, maxYSoFar) entry =
+        let newMaxX = max maxXSoFar (fst entry.state.pos) in
+        let newMaxY = max maxYSoFar (snd entry.state.pos) in
+        match entry.parent with
+        | Some parent -> getMaxPos (newMaxX, newMaxY) parent
+        | None -> (newMaxX, newMaxY)
+    in
+    let rec getPath pathSoFar entry =
+        let newPath = entry.state.pos :: pathSoFar in
+        match entry.parent with
+        | Some parent -> getPath newPath parent
+        | None -> newPath
+    in
+    let (maxX, maxY) = getMaxPos (0, 0) entry in
+    let path = getPath [] entry in
+    drawGrid favoriteNumber (maxX + 1) (maxY + 1) path
+;;
 
 let expandEntry favoriteNumber history frontier entry =
     let moveOffsets = [(-1, 0); (0, -1); (1, 0); (0, 1)] in
@@ -80,7 +110,8 @@ let main argv =
         let destX = Convert.ToInt32(destXStr) in
         let destY = Convert.ToInt32(destYStr) in
         let finalEntry = bfs favoriteNumber (destX, destY) 0 Set.empty [{ state = { pos = (1, 1); numMoves = 0 }; parent = None }] in
-        printfn "numMoves: %d" finalEntry.state.numMoves
+        let _ = printfn "numMoves: %d" finalEntry.state.numMoves in
+        drawHistory favoriteNumber finalEntry
     | _ -> printfn "need favorite number, dest x, and dest y"
     0
 ;;
