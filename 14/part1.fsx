@@ -15,6 +15,14 @@ let toHexString byteArray =
     Array.fold (fun state (elem : byte) -> state + (sprintf "%02x" elem)) "" byteArray
 ;;
 
+let rec generateStretchedHash stretchSize (bytes:byte[]) =
+    let md5Bytes = g_md5.ComputeHash(bytes) in
+    if stretchSize = 0 then
+        md5Bytes
+    else
+        generateStretchedHash (stretchSize - 1) (toByteArray (toHexString md5Bytes))
+;;
+
 let findFirstNibbleSequence numConsecutive nibble bytes =
     let addConsecutiveNibble (startingPoint, runSoFar, currentNibbleIndex) b =
         (*let _ = printfn "%02x (%01x %01x) - start %d, run %d, idx %d" b ((b >>> 4) &&& 0xfuy) (b &&& 0xfuy) startingPoint runSoFar currentNibbleIndex in*)
@@ -77,7 +85,7 @@ let createCandidateKey index bytes =
         None
 ;;
 
-let generateKeys salt numKeysToGenerate =
+let generateKeys salt numKeysToGenerate stretchSize =
     let rec helper keysSoFar keysSoFarLength candidateKeys index =
         (*
         let _ =
@@ -87,7 +95,7 @@ let generateKeys salt numKeysToGenerate =
                 ()
         in
         *)
-        let md5Bytes = g_md5.ComputeHash(toByteArray (sprintf "%s%u" salt index)) in
+        let md5Bytes = generateStretchedHash stretchSize (toByteArray (sprintf "%s%u" salt index)) in
         let md5BytesString = toHexString md5Bytes in
         let _ = printfn "index %u, hash %s, num candidates %d" index md5BytesString (List.length candidateKeys) in
         let tryConfirmCandidateKey (newKeysSoFar, newKeysSoFarLength, newCandidateKeys) candidateKey =
@@ -125,12 +133,13 @@ let generateKeys salt numKeysToGenerate =
 [<EntryPoint>]
 let main argv =
     match argv with
-    | [|salt; numKeysStr|] ->
+    | [|salt; numKeysStr; stretchSizeStr|] ->
         let numKeys = Convert.ToInt32(numKeysStr) in
-        let keys = generateKeys salt numKeys in
+        let stretchSize = Convert.ToInt32(stretchSizeStr) in
+        let keys = generateKeys salt numKeys stretchSize in
         let sortedKeys = List.sortBy (fun elem -> elem.index) keys in
         let _ = List.mapi (fun i elem -> printfn "key %2d - index: %7u, %s" (i + 1) elem.index (toHexString elem.bytes)) sortedKeys in
         ()
-    | _ -> printfn "need favorite number, dest x, and dest y"
+    | _ -> printfn "need salt, num keys, stretch size str"
     0
 ;;
