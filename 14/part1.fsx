@@ -116,12 +116,8 @@ let generateKeys salt numKeysToGenerate stretchSize =
             if index <= candidateKey.index + CONFIRM_INDEX_RANGE then
                 let (_, seqLength) = findFirstNibbleSequence CONFIRM_SEQUENCE_LENGTH candidateKey.nibble md5Bytes in
                 if seqLength = CONFIRM_SEQUENCE_LENGTH then
-                    if not (List.exists (fun elem -> elem.index = candidateKey.index) newKeysSoFar) then
-                        (*let _ = printfn "confirming candidate index %u - %s with %s at index %u" candidateKey.index (toHexString candidateKey.bytes) md5BytesString index in*)
-                        (candidateKey :: newKeysSoFar, newKeysSoFarLength + 1, newCandidateKeys)
-                    else
-                        (*let _ = printfn "at index %u, discarding duplicate candidate index %u" index candidateKey.index in*)
-                        (newKeysSoFar, newKeysSoFarLength, newCandidateKeys)
+                    (*let _ = printfn "confirming candidate index %u - %s with %s at index %u" candidateKey.index (toHexString candidateKey.bytes) md5BytesString index in*)
+                    (candidateKey :: newKeysSoFar, newKeysSoFarLength + 1, newCandidateKeys)
                 else
                     (newKeysSoFar, newKeysSoFarLength, candidateKey :: newCandidateKeys)
             else
