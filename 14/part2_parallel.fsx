@@ -1,9 +1,10 @@
 open System;;
 open System.Security.Cryptography;;
+open System.Threading;;
 
 exception Ex of string;;
 
-type RingBuffer(size, initializer) =
+type RingBuffer<'a>(size, initializer) =
     let storage = Array.create size initializer
     let mutable readIndex = 0
     let mutable writeIndex = 0
@@ -54,8 +55,6 @@ let toHexString byteArray =
 ;;
 
 type Key = { index : uint64; nibble : byte; bytes : byte[] };;
-
-let g_md5 = MD5.Create("MD5");;
 
 let byteArrayToStringByteArray bytes =
     let output = Array.create ((Array.length bytes) * 2) 0uy in
@@ -130,33 +129,101 @@ let createCandidateKey index bytes =
         None
 ;;
 
-let mutable g_numHashesToStore = 0;;
-let mutable g_numWorkers = 0;;
+let g_nextIndex = ref 0L;;
 
-let generateAndStoreStretchedHash stretchSize salt index =
-    let rec helper stretchSize (bytes:byte[]) =
-        let md5Bytes = g_md5.ComputeHash(bytes) in
-        if stretchSize = 0 then
-            md5Bytes
-        else
-            helper (stretchSize - 1) (byteArrayToStringByteArray md5Bytes)
+let mutable g_numHashesToStorePerWorker = 0;;
+let mutable g_numWorkers = 0;;
+let mutable g_hashStorage = Array.empty<RingBuffer<uint64 * byte[]>>;;
+let g_hashReadyEvent = new AutoResetEvent(false);;
+
+let initializeHashStorage () =
+    assert (g_numWorkers > 0);
+    assert (g_numHashesToStorePerWorker > 0);
+    g_hashStorage <- [| for i in 1 .. g_numWorkers -> new RingBuffer<uint64 * byte[]>(g_numHashesToStorePerWorker, (0UL, Array.empty)) |];
+;;
+
+let createHasher workerNum stretchSize salt =
+    async {
+        let md5 = MD5.Create("MD5") in
+        let generateStretchedHash index =
+            (*let _ = printfn "%d generating index %u" workerNum index in*)
+            let rec helper stretchSize (bytes:byte[]) =
+                let md5Bytes = md5.ComputeHash(bytes) in
+                if stretchSize = 0 then
+                    md5Bytes
+                else
+                    helper (stretchSize - 1) (byteArrayToStringByteArray md5Bytes)
+            in
+            helper stretchSize (toByteArray (sprintf "%s%u" salt index))
+        in
+        let getNextIndex () =
+            (Microsoft.FSharp.Core.Operators.uint64 (Interlocked.Increment(g_nextIndex))) - 1UL
+        in
+        let rec generateAndStoreNextHash index =
+            let hsh = generateStretchedHash index in
+            let rec storeHash attemptNum =
+                let _ =
+                    if attemptNum > 1 then
+                        printfn "%d: storeHash %u attempt %d" workerNum index attemptNum
+                    else
+                        ()
+                in
+                if (g_hashStorage.[workerNum].append (index, hsh)) then
+                    let _ = g_hashReadyEvent.Set() in
+                    ()
+                else
+                    storeHash (attemptNum + 1)
+            in
+            let _ = storeHash 1 in
+            generateAndStoreNextHash (getNextIndex ())
+        in
+        generateAndStoreNextHash (getNextIndex ())
+    }
+;;
+
+let consumeNextHash index =
+    let rec helper attemptNum =
+        let _ =
+            if (attemptNum % 1000) = 0 then
+                ()
+                (*printfn "consumeNextHash %u attempt %d" index attemptNum*)
+            else
+                ()
+        in
+        let tryConsumeHashFromRingBuffer (hashOpt:byte[] option) (ringBuffer:RingBuffer<uint64 * byte[]>) =
+            if hashOpt.IsNone then
+                match ringBuffer.peek () with
+                | Some (indexInRingBuffer, hashInRingBuffer) ->
+                    if indexInRingBuffer = index then
+                        let consumed = ringBuffer.consumeFirst () in
+                        let _ = assert(consumed.IsSome) in
+                        Some hashInRingBuffer
+                    else
+                        hashOpt
+                | None -> hashOpt
+            else
+                hashOpt
+        in
+        match Array.fold tryConsumeHashFromRingBuffer None g_hashStorage with
+        | None ->
+            let _ = g_hashReadyEvent.WaitOne() in
+            helper (attemptNum + 1)
+        | Some hsh -> hsh
     in
-    helper stretchSize (toByteArray (sprintf "%s%u" salt index))
+    helper 1
 ;;
 
 let generateKeys salt numKeysToGenerate stretchSize =
     let rec helper keysSoFar keysSoFarLength candidateKeys index =
-        (*
         let _ =
             if (index % 1000UL) = 0UL then
                 printfn "index %u, keys so far %d, num candidates %d" index keysSoFarLength (List.length candidateKeys)
             else
                 ()
         in
-        *)
-        let md5Bytes = generateStretchedHash stretchSize salt index in
+        let md5Bytes = consumeNextHash index in
         let md5BytesString = toHexString md5Bytes in
-        let _ = printfn "index %u, hash %s, num candidates %d" index md5BytesString (List.length candidateKeys) in
+        (*let _ = printfn "index %u, hash %s, num candidates %d" index md5BytesString (List.length candidateKeys) in*)
         let tryConfirmCandidateKey (newKeysSoFar, newKeysSoFarLength, newCandidateKeys) candidateKey =
             if index <= candidateKey.index + CONFIRM_INDEX_RANGE then
                 let (_, seqLength) = findFirstNibbleSequence CONFIRM_SEQUENCE_LENGTH candidateKey.nibble md5Bytes in
@@ -183,21 +250,23 @@ let generateKeys salt numKeysToGenerate stretchSize =
             confirmedKeysSoFar
     in
     let _ = initializeHashStorage () in
+    let hashWorkers = [ for i in 0 .. (g_numWorkers - 1) -> createHasher i stretchSize salt ] in
+    let _ = List.iter Async.Start hashWorkers in
     helper [] 0 [] 0UL
 ;;
 
 [<EntryPoint>]
 let main argv =
     match argv with
-    | [|salt; numKeysStr; stretchSizeStr; numWorkersStr; numHashesToStoreStr |] ->
+    | [|salt; numKeysStr; stretchSizeStr; numWorkersStr; numHashesToStorePerWorkerStr |] ->
         let numKeys = Convert.ToInt32(numKeysStr) in
         let stretchSize = Convert.ToInt32(stretchSizeStr) in
         let _ = g_numWorkers <- Convert.ToInt32(numWorkersStr) in
-        let _ = g_numHashesToStore <- Convert.ToInt32(numHashesToStoreStr) in
+        let _ = g_numHashesToStorePerWorker <- Convert.ToInt32(numHashesToStorePerWorkerStr) in
         let keys = generateKeys salt numKeys stretchSize in
         let sortedKeys = List.sortBy (fun elem -> elem.index) keys in
         let _ = List.mapi (fun i elem -> printfn "key %2d - index: %7u, %s" (i + 1) elem.index (toHexString elem.bytes)) sortedKeys in
         ()
-    | _ -> printfn "need salt, num keys, stretch size str, num workers, num hashes to store"
+    | _ -> printfn "need salt, num keys, stretch size str, num workers, num hashes to store per worker"
     0
 ;;

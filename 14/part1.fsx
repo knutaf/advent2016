@@ -101,14 +101,12 @@ let createCandidateKey index bytes =
 
 let generateKeys salt numKeysToGenerate stretchSize =
     let rec helper keysSoFar keysSoFarLength candidateKeys index =
-        (*
         let _ =
             if (index % 1000UL) = 0UL then
                 printfn "index %u, keys so far %d, num candidates %d" index keysSoFarLength (List.length candidateKeys)
             else
                 ()
         in
-        *)
         let md5Bytes = generateStretchedHash stretchSize (toByteArray (sprintf "%s%u" salt index)) in
         let md5BytesString = toHexString md5Bytes in
         (*let _ = printfn "index %u, hash %s, num candidates %d" index md5BytesString (List.length candidateKeys) in*)
