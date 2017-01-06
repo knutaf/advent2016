@@ -22,6 +22,6 @@ module QueryPerformance =
         else
             0UL
 
-    let getMillisecondsElapsed startCount endCount =
-        1000UL * (endCount - startCount) / frequency
+    let millisecondsFromPerfCounts counts =
+        1000UL * counts / frequency
 ;;
