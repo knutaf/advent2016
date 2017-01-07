@@ -1,5 +1,6 @@
 open System;;
 open System.Security.Cryptography;;
+open QueryPerformance;;
 
 exception Ex of string;;
 
@@ -100,14 +101,17 @@ let createCandidateKey index bytes =
 ;;
 
 let generateKeys salt numKeysToGenerate stretchSize =
-    let rec helper keysSoFar keysSoFarLength candidateKeys index =
+    let rec helper keysSoFar keysSoFarLength candidateKeys perfCountsWaitingForHashes index =
         let _ =
             if (index % 1000UL) = 0UL then
                 printfn "index %u, keys so far %d, num candidates %d" index keysSoFarLength (List.length candidateKeys)
             else
                 ()
         in
+        let startCount = QueryPerformance.QueryPerformanceCounter () in
         let md5Bytes = generateStretchedHash stretchSize (toByteArray (sprintf "%s%u" salt index)) in
+        let endCount = QueryPerformance.QueryPerformanceCounter () in
+        let newPerfCountsWaitingForHashes = perfCountsWaitingForHashes + (endCount - startCount) in
         let md5BytesString = toHexString md5Bytes in
         (*let _ = printfn "index %u, hash %s, num candidates %d" index md5BytesString (List.length candidateKeys) in*)
         let tryConfirmCandidateKey (newKeysSoFar, newKeysSoFarLength, newCandidateKeys) candidateKey =
@@ -129,13 +133,14 @@ let generateKeys salt numKeysToGenerate stretchSize =
                 | Some candidateKey -> candidateKey :: remainingCandidateKeys
                 | None -> remainingCandidateKeys
             in
-            helper confirmedKeysSoFar confirmedKeysSoFarLength newCandidateKeys (index + 1UL)
+            helper confirmedKeysSoFar confirmedKeysSoFarLength newCandidateKeys newPerfCountsWaitingForHashes (index + 1UL)
         elif not (List.isEmpty remainingCandidateKeys) then
-            helper confirmedKeysSoFar confirmedKeysSoFarLength remainingCandidateKeys (index + 1UL)
+            helper confirmedKeysSoFar confirmedKeysSoFarLength remainingCandidateKeys newPerfCountsWaitingForHashes (index + 1UL)
         else
+            let _ = printfn "ms spent waiting for hashes: %u" (QueryPerformance.millisecondsFromPerfCounts newPerfCountsWaitingForHashes) in
             confirmedKeysSoFar
     in
-    helper [] 0 [] 0UL
+    helper [] 0 [] 0UL 0UL
 ;;
 
 [<EntryPoint>]

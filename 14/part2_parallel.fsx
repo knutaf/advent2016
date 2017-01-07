@@ -1,6 +1,7 @@
 open System;;
 open System.Security.Cryptography;;
 open System.Threading;;
+open QueryPerformance;;
 
 exception Ex of string;;
 
@@ -8,7 +9,6 @@ type RingBuffer<'a>(size, initializer) =
     let storage = Array.create size initializer
     let mutable readIndex = 0
     let mutable writeIndex = 0
-    let storageLock = new Object()
 
     member this.append value =
         let work () =
@@ -20,14 +20,13 @@ type RingBuffer<'a>(size, initializer) =
                 let _ = writeIndex <- nextWriteIndex in
                 true
         in
-        lock storageLock work
+        lock storage work
 
     member this.peek () =
-        let item = storage.[readIndex] in
         if readIndex = writeIndex then
             None
         else
-            Some item
+            Some storage.[readIndex]
 
     member this.consumeFirst () =
         let work () =
@@ -40,7 +39,7 @@ type RingBuffer<'a>(size, initializer) =
             in
             itemOpt
         in
-        lock storageLock work
+        lock storage work
 ;;
 
 let toByteArray str =
@@ -133,6 +132,7 @@ let g_nextIndex = ref 0L;;
 
 let mutable g_numHashesToStorePerWorker = 0;;
 let mutable g_numWorkers = 0;;
+let mutable g_useSpinWaits = false;;
 let mutable g_hashStorage = Array.empty<RingBuffer<uint64 * byte[]>>;;
 let g_hashReadyEvent = new AutoResetEvent(false);;
 
@@ -169,8 +169,11 @@ let createHasher workerNum stretchSize salt =
                         ()
                 in
                 if (g_hashStorage.[workerNum].append (index, hsh)) then
-                    let _ = g_hashReadyEvent.Set() in
-                    ()
+                    if g_useSpinWaits then
+                        ()
+                    else
+                        let _ = g_hashReadyEvent.Set() in
+                        ()
                 else
                     storeHash (attemptNum + 1)
             in
@@ -183,13 +186,15 @@ let createHasher workerNum stretchSize salt =
 
 let consumeNextHash index =
     let rec helper attemptNum =
+        (*
         let _ =
             if (attemptNum % 1000) = 0 then
                 ()
-                (*printfn "consumeNextHash %u attempt %d" index attemptNum*)
+                printfn "consumeNextHash %u attempt %d" index attemptNum
             else
                 ()
         in
+        *)
         let tryConsumeHashFromRingBuffer (hashOpt:byte[] option) (ringBuffer:RingBuffer<uint64 * byte[]>) =
             if hashOpt.IsNone then
                 match ringBuffer.peek () with
@@ -206,7 +211,13 @@ let consumeNextHash index =
         in
         match Array.fold tryConsumeHashFromRingBuffer None g_hashStorage with
         | None ->
-            let _ = g_hashReadyEvent.WaitOne() in
+            let _ =
+                if g_useSpinWaits then
+                    ()
+                else
+                    let _ = g_hashReadyEvent.WaitOne() in
+                    ()
+            in
             helper (attemptNum + 1)
         | Some hsh -> hsh
     in
@@ -214,14 +225,17 @@ let consumeNextHash index =
 ;;
 
 let generateKeys salt numKeysToGenerate stretchSize =
-    let rec helper keysSoFar keysSoFarLength candidateKeys index =
+    let rec helper keysSoFar keysSoFarLength candidateKeys perfCountsWaitingForHashes index =
         let _ =
             if (index % 1000UL) = 0UL then
                 printfn "index %u, keys so far %d, num candidates %d" index keysSoFarLength (List.length candidateKeys)
             else
                 ()
         in
+        let startCount = QueryPerformance.QueryPerformanceCounter () in
         let md5Bytes = consumeNextHash index in
+        let endCount = QueryPerformance.QueryPerformanceCounter () in
+        let newPerfCountsWaitingForHashes = perfCountsWaitingForHashes + (endCount - startCount) in
         let md5BytesString = toHexString md5Bytes in
         (*let _ = printfn "index %u, hash %s, num candidates %d" index md5BytesString (List.length candidateKeys) in*)
         let tryConfirmCandidateKey (newKeysSoFar, newKeysSoFarLength, newCandidateKeys) candidateKey =
@@ -243,26 +257,28 @@ let generateKeys salt numKeysToGenerate stretchSize =
                 | Some candidateKey -> candidateKey :: remainingCandidateKeys
                 | None -> remainingCandidateKeys
             in
-            helper confirmedKeysSoFar confirmedKeysSoFarLength newCandidateKeys (index + 1UL)
+            helper confirmedKeysSoFar confirmedKeysSoFarLength newCandidateKeys newPerfCountsWaitingForHashes (index + 1UL)
         elif not (List.isEmpty remainingCandidateKeys) then
-            helper confirmedKeysSoFar confirmedKeysSoFarLength remainingCandidateKeys (index + 1UL)
+            helper confirmedKeysSoFar confirmedKeysSoFarLength remainingCandidateKeys newPerfCountsWaitingForHashes (index + 1UL)
         else
+            let _ = printfn "ms spent waiting for hashes: %u" (QueryPerformance.millisecondsFromPerfCounts newPerfCountsWaitingForHashes) in
             confirmedKeysSoFar
     in
     let _ = initializeHashStorage () in
     let hashWorkers = [ for i in 0 .. (g_numWorkers - 1) -> createHasher i stretchSize salt ] in
     let _ = List.iter Async.Start hashWorkers in
-    helper [] 0 [] 0UL
+    helper [] 0 [] 0UL 0UL
 ;;
 
 [<EntryPoint>]
 let main argv =
     match argv with
-    | [|salt; numKeysStr; stretchSizeStr; numWorkersStr; numHashesToStorePerWorkerStr |] ->
+    | [|salt; numKeysStr; stretchSizeStr; numWorkersStr; numHashesToStorePerWorkerStr; useSpinWaits |] ->
         let numKeys = Convert.ToInt32(numKeysStr) in
         let stretchSize = Convert.ToInt32(stretchSizeStr) in
         let _ = g_numWorkers <- Convert.ToInt32(numWorkersStr) in
         let _ = g_numHashesToStorePerWorker <- Convert.ToInt32(numHashesToStorePerWorkerStr) in
+        let _ = g_useSpinWaits <- (useSpinWaits = "true") in
         let keys = generateKeys salt numKeys stretchSize in
         let sortedKeys = List.sortBy (fun elem -> elem.index) keys in
         let _ = List.mapi (fun i elem -> printfn "key %2d - index: %7u, %s" (i + 1) elem.index (toHexString elem.bytes)) sortedKeys in
