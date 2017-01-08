@@ -55,14 +55,15 @@ let toHexString byteArray =
 
 type Key = { index : uint64; nibble : byte; bytes : byte[] };;
 
-let byteArrayToStringByteArray bytes =
-    let output = Array.create ((Array.length bytes) * 2) 0uy in
+let byteArrayToStringByteArray input output =
+    assert ((Array.length output) = (Array.length input) * 2);
     Array.iteri (fun i b ->
+        let outputIndex = i * 2 in
         let nibbles = BYTE_TO_BYTE_STRING.[int b] in
-        let _ = output.[i * 2] <- nibbles.[0] in
-        output.[(i * 2) + 1] <- nibbles.[1]
-    ) bytes;
-    (*printfn "%s -> %s" (toHexString bytes) (toHexString output)*)
+        let _ = output.[outputIndex] <- nibbles.[0] in
+        output.[outputIndex + 1] <- nibbles.[1]
+    ) input;
+    (*printfn "%s -> %s" (toHexString input) (toHexString output)*)
     output
 ;;
 
@@ -102,6 +103,7 @@ let findFirstNibbleSequence numConsecutive nibble bytes =
 let CANDIDATE_SEQUENCE_LENGTH = 3;;
 let CONFIRM_SEQUENCE_LENGTH = 5;;
 let CONFIRM_INDEX_RANGE = 1000UL;;
+let HASH_BYTE_LENGTH = 16;;
 
 let createCandidateKey index bytes =
     let findEarliestNibbleSequence (earliestSequenceStart, earliestSequenceNibble) nibble =
@@ -136,15 +138,22 @@ let mutable g_useSpinWaits = false;;
 let mutable g_hashStorage = Array.empty<RingBuffer<uint64 * byte[]>>;;
 let g_hashReadyEvent = new AutoResetEvent(false);;
 
+let mutable g_perfCountsContendingNextIndex = Array.empty<uint64>;;
+let mutable g_perfCountsContendingStoreHash = Array.empty<uint64>;;
+let mutable g_perfCountsContendingConsumeHash = 0UL;;
+
 let initializeHashStorage () =
     assert (g_numWorkers > 0);
     assert (g_numHashesToStorePerWorker > 0);
     g_hashStorage <- [| for i in 1 .. g_numWorkers -> new RingBuffer<uint64 * byte[]>(g_numHashesToStorePerWorker, (0UL, Array.empty)) |];
+    g_perfCountsContendingNextIndex <- Array.create g_numWorkers 0UL;
+    g_perfCountsContendingStoreHash <- Array.create g_numWorkers 0UL;
 ;;
 
 let createHasher workerNum stretchSize salt =
     async {
         let md5 = MD5.Create("MD5") in
+        let intermediateHashBuffer = Array.create (HASH_BYTE_LENGTH * 2) 0uy in
         let generateStretchedHash index =
             (*let _ = printfn "%d generating index %u" workerNum index in*)
             let rec helper stretchSize (bytes:byte[]) =
@@ -152,23 +161,33 @@ let createHasher workerNum stretchSize salt =
                 if stretchSize = 0 then
                     md5Bytes
                 else
-                    helper (stretchSize - 1) (byteArrayToStringByteArray md5Bytes)
+                    helper (stretchSize - 1) (byteArrayToStringByteArray md5Bytes intermediateHashBuffer)
             in
             helper stretchSize (toByteArray (sprintf "%s%u" salt index))
         in
         let getNextIndex () =
-            (Microsoft.FSharp.Core.Operators.uint64 (Interlocked.Increment(g_nextIndex))) - 1UL
+            let startCount = QueryPerformance.QueryPerformanceCounter () in
+            let nextIndex = (Microsoft.FSharp.Core.Operators.uint64 (Interlocked.Increment(g_nextIndex))) - 1UL in
+            let endCount = QueryPerformance.QueryPerformanceCounter () in
+            let _ = g_perfCountsContendingNextIndex.[workerNum] <- g_perfCountsContendingNextIndex.[workerNum] + (endCount - startCount) in
+            nextIndex
         in
         let rec generateAndStoreNextHash index =
             let hsh = generateStretchedHash index in
             let rec storeHash attemptNum =
+                (*
                 let _ =
                     if attemptNum > 1 then
                         printfn "%d: storeHash %u attempt %d" workerNum index attemptNum
                     else
                         ()
                 in
-                if (g_hashStorage.[workerNum].append (index, hsh)) then
+                *)
+                let startCount = QueryPerformance.QueryPerformanceCounter () in
+                let succeededAppend = g_hashStorage.[workerNum].append (index, hsh) in
+                let endCount = QueryPerformance.QueryPerformanceCounter () in
+                let _ = g_perfCountsContendingStoreHash.[workerNum] <- g_perfCountsContendingStoreHash.[workerNum] + (endCount - startCount) in
+                if succeededAppend then
                     if g_useSpinWaits then
                         ()
                     else
@@ -200,7 +219,10 @@ let consumeNextHash index =
                 match ringBuffer.peek () with
                 | Some (indexInRingBuffer, hashInRingBuffer) ->
                     if indexInRingBuffer = index then
+                        let startCount = QueryPerformance.QueryPerformanceCounter () in
                         let consumed = ringBuffer.consumeFirst () in
+                        let endCount = QueryPerformance.QueryPerformanceCounter () in
+                        let _ = g_perfCountsContendingConsumeHash <- g_perfCountsContendingConsumeHash + (endCount - startCount) in
                         let _ = assert(consumed.IsSome) in
                         Some hashInRingBuffer
                     else
@@ -262,6 +284,9 @@ let generateKeys salt numKeysToGenerate stretchSize =
             helper confirmedKeysSoFar confirmedKeysSoFarLength remainingCandidateKeys newPerfCountsWaitingForHashes (index + 1UL)
         else
             let _ = printfn "ms spent waiting for hashes: %u" (QueryPerformance.millisecondsFromPerfCounts newPerfCountsWaitingForHashes) in
+            let _ = printfn "ms spent waiting on getNextIndex: %u" (QueryPerformance.millisecondsFromPerfCounts (Array.sum g_perfCountsContendingNextIndex)) in
+            let _ = printfn "ms spent waiting on append: %u" (QueryPerformance.millisecondsFromPerfCounts (Array.sum g_perfCountsContendingStoreHash)) in
+            let _ = printfn "ms spent waiting on consumeFirst: %u" (QueryPerformance.millisecondsFromPerfCounts g_perfCountsContendingConsumeHash) in
             confirmedKeysSoFar
     in
     let _ = initializeHashStorage () in

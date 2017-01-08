@@ -18,24 +18,26 @@ let toHexString byteArray =
 type Key = { index : uint64; nibble : byte; bytes : byte[] };;
 
 let g_md5 = MD5.Create("MD5");;
+let HASH_BYTE_LENGTH = 16;;
 
-let byteArrayToStringByteArray bytes =
-    let output = Array.create ((Array.length bytes) * 2) 0uy in
+let byteArrayToStringByteArray input output =
+    assert ((Array.length output) = (Array.length input) * 2);
     Array.iteri (fun i b ->
+        let outputIndex = i * 2 in
         let nibbles = BYTE_TO_BYTE_STRING.[int b] in
-        let _ = output.[i * 2] <- nibbles.[0] in
-        output.[(i * 2) + 1] <- nibbles.[1]
-    ) bytes;
-    (*printfn "%s -> %s" (toHexString bytes) (toHexString output)*)
+        let _ = output.[outputIndex] <- nibbles.[0] in
+        output.[outputIndex + 1] <- nibbles.[1]
+    ) input;
+    (*printfn "%s -> %s" (toHexString input) (toHexString output)*)
     output
 ;;
 
-let rec generateStretchedHash stretchSize (bytes:byte[]) =
+let rec generateStretchedHash stretchSize intermediateHashBuffer (bytes:byte[]) =
     let md5Bytes = g_md5.ComputeHash(bytes) in
     if stretchSize = 0 then
         md5Bytes
     else
-        generateStretchedHash (stretchSize - 1) (byteArrayToStringByteArray md5Bytes)
+        generateStretchedHash (stretchSize - 1) (byteArrayToStringByteArray md5Bytes intermediateHashBuffer) intermediateHashBuffer
 ;;
 
 let findFirstNibbleSequence numConsecutive nibble bytes =
@@ -101,6 +103,7 @@ let createCandidateKey index bytes =
 ;;
 
 let generateKeys salt numKeysToGenerate stretchSize =
+    let intermediateHashBuffer = Array.create (HASH_BYTE_LENGTH * 2) 0uy in
     let rec helper keysSoFar keysSoFarLength candidateKeys perfCountsWaitingForHashes index =
         let _ =
             if (index % 1000UL) = 0UL then
@@ -109,7 +112,7 @@ let generateKeys salt numKeysToGenerate stretchSize =
                 ()
         in
         let startCount = QueryPerformance.QueryPerformanceCounter () in
-        let md5Bytes = generateStretchedHash stretchSize (toByteArray (sprintf "%s%u" salt index)) in
+        let md5Bytes = generateStretchedHash stretchSize intermediateHashBuffer (toByteArray (sprintf "%s%u" salt index)) in
         let endCount = QueryPerformance.QueryPerformanceCounter () in
         let newPerfCountsWaitingForHashes = perfCountsWaitingForHashes + (endCount - startCount) in
         let md5BytesString = toHexString md5Bytes in

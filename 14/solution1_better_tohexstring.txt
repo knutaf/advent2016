@@ -1,4 +1,29 @@
 Starting part1.exe jlmsuwbz 64 2016
+index 0, keys so far 0, num candidates 0
+index 1000, keys so far 9, num candidates 96
+index 2000, keys so far 9, num candidates 101
+index 3000, keys so far 9, num candidates 107
+index 4000, keys so far 9, num candidates 101
+index 5000, keys so far 17, num candidates 99
+index 6000, keys so far 17, num candidates 115
+index 7000, keys so far 25, num candidates 98
+index 8000, keys so far 25, num candidates 114
+index 9000, keys so far 32, num candidates 95
+index 10000, keys so far 34, num candidates 118
+index 11000, keys so far 34, num candidates 105
+index 12000, keys so far 34, num candidates 110
+index 13000, keys so far 34, num candidates 107
+index 14000, keys so far 41, num candidates 106
+index 15000, keys so far 41, num candidates 110
+index 16000, keys so far 52, num candidates 100
+index 17000, keys so far 52, num candidates 106
+index 18000, keys so far 52, num candidates 91
+index 19000, keys so far 52, num candidates 103
+index 20000, keys so far 52, num candidates 112
+index 21000, keys so far 59, num candidates 109
+index 22000, keys so far 59, num candidates 90
+index 23000, keys so far 59, num candidates 125
+index 24000, keys so far 70, num candidates 5
 key  1 - index:      41, 4a7cd52ea9718c50869247a5bbbb5c32
 key  2 - index:     108, ca51ebbbd3679726197c58e6063fe23a
 key  3 - index:     151, efbbb4eeef4620c2e715275071deda10
@@ -70,4 +95,4 @@ key 68 - index:   22831, 535169782eb36addd87e12bc7ee3df66
 key 69 - index:   22873, 9ce3b9643c8434983cf9382acc65fddd
 key 70 - index:   22934, e54a36d78ba1b1d75afeb549313ddd89
 
-Finished in 91984 ms
+Finished in 97969 ms
