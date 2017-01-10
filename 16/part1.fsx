@@ -3,6 +3,15 @@ open System.Text.RegularExpressions;;
 
 exception Ex of string;;
 
+let takeFirstN n ls =
+    List.fold (fun sofar elem ->
+        if List.length sofar < n then
+            sofar @ [elem]
+        else
+            sofar
+        ) [] ls
+;;
+
 let parseInput dataStr =
     List.ofSeq (Seq.map (fun ch ->
         match ch with
@@ -16,7 +25,6 @@ let dataToString data =
     List.fold (fun sofar d -> sofar + (if d then "1" else "0")) "" data
 ;;
 
-
 let munge a =
     let b = List.rev a in
     let bInverse = List.map (not) b in
@@ -24,7 +32,10 @@ let munge a =
 ;;
 
 let rec mungeUntilSize data size =
-    if List.length data >= size then
+    let dataLength = List.length data in
+    if dataLength > size then
+        takeFirstN size data
+    elif dataLength = size then
         data
     else
         mungeUntilSize (munge data) size
