@@ -25,20 +25,19 @@ let dataToString data =
     List.fold (fun sofar d -> sofar + (if d then "1" else "0")) "" data
 ;;
 
-let munge a =
-    let b = List.rev a in
-    let bInverse = List.map (not) b in
-    a @ (false::bInverse)
+let munge a aLength =
+    let (bInverse, listLength) = List.fold (fun (bSofar, len) elem -> ((not elem) :: bSofar), len + 1) ([], 0) a in
+    (a @ (false :: bInverse), (aLength + 1 + listLength))
 ;;
 
-let rec mungeUntilSize data size =
-    let dataLength = List.length data in
+let rec mungeUntilSize data dataLength size =
     if dataLength > size then
-        takeFirstN size data
+        (takeFirstN size data, size)
     elif dataLength = size then
-        data
+        (data, dataLength)
     else
-        mungeUntilSize (munge data) size
+        let (newData, newDataLength) = munge data dataLength in
+        mungeUntilSize newData newDataLength size
 ;;
 
 let rec calculateChecksum data =
@@ -63,8 +62,11 @@ let main argv =
         let diskSize = Convert.ToInt32(diskSizeStr) in
         let _ = printfn "input data: %s, size: %d" (dataToString inputData) diskSize in
         if (diskSize % 2) = 0 then
-            let mungedData = mungeUntilSize inputData diskSize in
-            let _ = printfn "munged: %s" (dataToString mungedData) in
+            (*
+            printfn "munge 1: %s" (dataToString (fst (munge inputData (List.length inputData))))
+            *)
+            let (mungedData, mungedDataLength) = mungeUntilSize inputData (List.length inputData) diskSize in
+            let _ = printfn "munged: %d" mungedDataLength in
             printfn "checksum: %s" (dataToString (calculateChecksum mungedData))
         else
             printfn "can't calculate checksum of odd size!"
