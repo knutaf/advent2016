@@ -66,6 +66,7 @@ let munge a aLength =
 ;;
 
 let rec mungeUntilSize data dataLength desiredSize =
+    let _ = printfn "mungeUntilSize: %d" dataLength in
     if dataLength > desiredSize then
         (takeFirstN desiredSize data, desiredSize)
     elif dataLength = desiredSize then
@@ -106,7 +107,8 @@ let main argv =
         if (diskSize % 2) = 0 then
             // printfn "munge 1: %s" (dataToString (fst (munge inputData inputDataLength)))
             let (mungedData, mungedDataLength) = mungeUntilSize inputData inputDataLength diskSize in
-            let _ = printfn "munged: %s %d" (dataToString mungedData) mungedDataLength in
+            //let _ = printfn "munged: %s %d" (dataToString mungedData) mungedDataLength in
+            let _ = printfn "munged: %d" mungedDataLength in
             printfn "checksum: %s" (dataToString (calculateChecksum mungedData))
             ()
         else
