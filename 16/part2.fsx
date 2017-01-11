@@ -6,12 +6,17 @@ exception Ex of string;;
 type Node = { data : bool; mutable next : Node option };;
 
 let takeFirstN n ls =
-    List.fold (fun sofar elem ->
-        if List.length sofar < n then
-            sofar @ [elem]
+    let rec helper n ls =
+        if n = 1 then
+            let _ = ls.next <- None in
+            ()
+        elif ls.next.IsNone then
+            raise (Ex "n greater than ls length!")
         else
-            sofar
-        ) [] ls
+            helper (n - 1) ls.next.Value
+    in
+    let _ = helper n ls in
+    ls
 ;;
 
 let parseInput dataStr =
@@ -60,17 +65,17 @@ let munge a aLength =
     (a, aLength + 1 + bInverseLength)
 ;;
 
-(*
-let rec mungeUntilSize data dataLength size =
-    if dataLength > size then
-        (takeFirstN size data, size)
-    elif dataLength = size then
+let rec mungeUntilSize data dataLength desiredSize =
+    if dataLength > desiredSize then
+        (takeFirstN desiredSize data, desiredSize)
+    elif dataLength = desiredSize then
         (data, dataLength)
     else
         let (newData, newDataLength) = munge data dataLength in
-        mungeUntilSize newData newDataLength size
+        mungeUntilSize newData newDataLength desiredSize
 ;;
 
+(*
 let rec calculateChecksum data =
     let rec helper checksumSoFar data =
         match data with
@@ -94,10 +99,10 @@ let main argv =
         let diskSize = Convert.ToInt32(diskSizeStr) in
         let _ = printfn "input data: %s (%d), size: %d" (dataToString inputData) inputDataLength diskSize in
         if (diskSize % 2) = 0 then
+            // printfn "munge 1: %s" (dataToString (fst (munge inputData inputDataLength)))
+            let (mungedData, mungedDataLength) = mungeUntilSize inputData inputDataLength diskSize in
+            let _ = printfn "munged: %s %d" (dataToString mungedData) mungedDataLength in
             (*
-            printfn "munge 1: %s" (dataToString (fst (munge inputData (List.length inputData))))
-            let (mungedData, mungedDataLength) = mungeUntilSize inputData (List.length inputData) diskSize in
-            let _ = printfn "munged: %d" mungedDataLength in
             printfn "checksum: %s" (dataToString (calculateChecksum mungedData))
             *)
             ()
