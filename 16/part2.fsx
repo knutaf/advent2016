@@ -75,21 +75,26 @@ let rec mungeUntilSize data dataLength desiredSize =
         mungeUntilSize newData newDataLength desiredSize
 ;;
 
-(*
-let rec calculateChecksum data =
-    let rec helper checksumSoFar data =
-        match data with
-        | [] -> checksumSoFar
-        | a :: b :: rest -> helper (checksumSoFar @ [a = b]) rest
-        | _ -> raise (Ex (sprintf "how did this happen!? %A" data))
+let rec calculateChecksum ls =
+    let rec helper endOfChecksumList checksumListLength ls =
+        match ls with
+        | None -> checksumListLength
+        | Some node ->
+            match node.next with
+            | None -> raise (Ex (sprintf "how did this happen!? %A" ls))
+            | Some nextNode ->
+                let _ = assert(endOfChecksumList.next.IsNone) in
+                let _ = endOfChecksumList.next <- Some { data = (node.data = nextNode.data); next = None } in
+                helper endOfChecksumList.next.Value (checksumListLength + 1) nextNode.next
     in
-    let checksumStep = helper [] data in
-    if ((List.length checksumStep) % 2 = 1) then
-        checksumStep
+    let dummyHead = { data = false; next = None } in
+    let checksumStepLength = helper dummyHead 0 (Some ls) in
+    let _ = assert(dummyHead.next.IsSome) in
+    if ((checksumStepLength % 2) = 1) then
+        dummyHead.next.Value
     else
-        calculateChecksum checksumStep
+        calculateChecksum dummyHead.next.Value
 ;;
-*)
 
 [<EntryPoint>]
 let main argv =
@@ -102,9 +107,7 @@ let main argv =
             // printfn "munge 1: %s" (dataToString (fst (munge inputData inputDataLength)))
             let (mungedData, mungedDataLength) = mungeUntilSize inputData inputDataLength diskSize in
             let _ = printfn "munged: %s %d" (dataToString mungedData) mungedDataLength in
-            (*
             printfn "checksum: %s" (dataToString (calculateChecksum mungedData))
-            *)
             ()
         else
             printfn "can't calculate checksum of odd size!"
