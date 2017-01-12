@@ -3,6 +3,15 @@ open System.Text.RegularExpressions;;
 
 exception Ex of string;;
 
+let countSafeTiles str =
+    Seq.fold (fun numSafeTilesSoFar tile ->
+        match tile with
+        | '^' -> numSafeTilesSoFar
+        | '.' -> (numSafeTilesSoFar + 1)
+        | _ -> raise (Ex "invalid char!")
+        ) 0 str
+;;
+
 let generateNextLine (prevLine:string) =
     let generateTile i tile =
         let leftTile =
@@ -35,15 +44,17 @@ let main argv =
     | [| numLinesToGenerateStr |] ->
         let numLinesToGenerate = Convert.ToInt32(numLinesToGenerateStr) in
         let firstLine = Console.ReadLine() in
-        let _ = printfn "%s" firstLine in
-        let lastLine =
-            Seq.fold (fun prevLine _ ->
+        let numSafeTiles = countSafeTiles firstLine in
+        //let _ = printfn "%s (%d)" firstLine numSafeTiles in
+        let (lastLine, totalSafeTiles) =
+            Seq.fold (fun (prevLine, numSafeTilesSoFar) _ ->
                 let nextLine = generateNextLine prevLine in
-                let _ = printfn "%s" nextLine in
-                nextLine
-                ) firstLine (seq { 1 .. (numLinesToGenerate - 1) })
+                let safeTilesInNextLine = countSafeTiles nextLine in
+                //let _ = printfn "%s (%d)" nextLine safeTilesInNextLine in
+                (nextLine, numSafeTilesSoFar + safeTilesInNextLine)
+                ) (firstLine, numSafeTiles) (seq { 1 .. (numLinesToGenerate - 1) })
         in
-        ()
+        printfn "total safe tiles: %d" totalSafeTiles
     | _ -> printfn "need num lines to generate"
     0
 ;;
