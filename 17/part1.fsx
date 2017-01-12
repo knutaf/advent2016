@@ -110,26 +110,42 @@ let verifyPath pathStr =
 
 // TODO: find the shortest path, not the first successful path
 let dfs passcode =
-    let rec helper pos pathStr =
+    let rec helper shortestSolutionSoFar pos pathStr =
+        let getSolutionLength solution =
+            if solution = "" then
+                System.Int32.MaxValue
+            else
+                String.length solution
+        in
         if pos = TARGET then
-            Some pathStr
+            pathStr
+        elif (String.length pathStr) = (getSolutionLength shortestSolutionSoFar) then
+            ""
         else
+            let _ = assert((String.length pathStr) < (getSolutionLength shortestSolutionSoFar)) in
             let openDoors = getOpenDoors pos pathStr in
-            List.fold (fun anyPath dir ->
-                if anyPath.IsSome then
-                    anyPath
+            List.fold (fun shortestSolutionSoFar dir ->
+                let potentialSolution = helper shortestSolutionSoFar (movePos pos dir) (pathStr + (stringFromDir dir)) in
+                if potentialSolution = "" then
+                    shortestSolutionSoFar
                 else
-                    helper (movePos pos dir) (pathStr + (stringFromDir dir))
-                ) None openDoors
+                    let potentialSolutionLength = String.length potentialSolution in
+                    let _ = assert(potentialSolutionLength > (String.length passcode)) in
+                    if potentialSolutionLength < (getSolutionLength shortestSolutionSoFar) then
+                        potentialSolution
+                    else
+                        shortestSolutionSoFar
+                ) shortestSolutionSoFar openDoors
     in
-    helper START passcode
+    helper "" START passcode
 ;;
 
 [<EntryPoint>]
 let main argv =
     match argv with
     | [| passcode |] ->
-        let pathWithPasscode = (dfs passcode).Value in
+        let pathWithPasscode = (dfs passcode) in
+        let _ = printfn "pathWithPasscode: %s" pathWithPasscode in
         let path = pathWithPasscode.Substring(String.length passcode) in
         let _ = verifyPath path in
         printfn "path: %s" path
