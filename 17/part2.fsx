@@ -101,7 +101,7 @@ let verifyPath pathStr =
     let endPos =
         Seq.fold (fun pos ch ->
             let nextPos = movePos pos (dirFromChar ch) in
-            let _ = printfn "%A -> %c -> %A" pos ch nextPos in
+            //let _ = printfn "%A -> %c -> %A" pos ch nextPos in
             nextPos
             ) START pathStr
     in
@@ -109,32 +109,29 @@ let verifyPath pathStr =
 ;;
 
 let dfs passcode =
-    let rec helper shortestSolutionSoFar pos pathStr =
+    let rec helper longestSolutionSoFar pos pathStr =
         let getSolutionLength solution =
             if solution = "" then
-                System.Int32.MaxValue
+                0
             else
                 String.length solution
         in
         if pos = TARGET then
             pathStr
-        elif (String.length pathStr) = (getSolutionLength shortestSolutionSoFar) then
-            ""
         else
-            let _ = assert((String.length pathStr) < (getSolutionLength shortestSolutionSoFar)) in
             let openDoors = getOpenDoors pos pathStr in
-            List.fold (fun shortestSolutionSoFar dir ->
-                let potentialSolution = helper shortestSolutionSoFar (movePos pos dir) (pathStr + (stringFromDir dir)) in
+            List.fold (fun longestSolutionSoFar dir ->
+                let potentialSolution = helper longestSolutionSoFar (movePos pos dir) (pathStr + (stringFromDir dir)) in
                 if potentialSolution = "" then
-                    shortestSolutionSoFar
+                    longestSolutionSoFar
                 else
                     let potentialSolutionLength = String.length potentialSolution in
                     let _ = assert(potentialSolutionLength > (String.length passcode)) in
-                    if potentialSolutionLength < (getSolutionLength shortestSolutionSoFar) then
+                    if potentialSolutionLength > (getSolutionLength longestSolutionSoFar) then
                         potentialSolution
                     else
-                        shortestSolutionSoFar
-                ) shortestSolutionSoFar openDoors
+                        longestSolutionSoFar
+                ) longestSolutionSoFar openDoors
     in
     helper "" START passcode
 ;;
@@ -144,10 +141,10 @@ let main argv =
     match argv with
     | [| passcode |] ->
         let pathWithPasscode = (dfs passcode) in
-        let _ = printfn "pathWithPasscode: %s" pathWithPasscode in
+        //let _ = printfn "pathWithPasscode: %s" pathWithPasscode in
         let path = pathWithPasscode.Substring(String.length passcode) in
         let _ = verifyPath path in
-        printfn "path: %s" path
+        printfn "path: (%d)" (String.length path)
     | _ -> printfn "need passcode"
     0
 ;;
