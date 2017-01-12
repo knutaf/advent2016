@@ -3,8 +3,30 @@ open System.Text.RegularExpressions;;
 
 exception Ex of string;;
 
-let generateNextLine prevLine =
-    prevLine
+let generateNextLine (prevLine:string) =
+    let generateTile i tile =
+        let leftTile =
+            if i = 0 then
+                '.'
+            else
+                prevLine.[i - 1]
+        in
+        let centerTile = tile in
+        let rightTile =
+            if i = (String.length prevLine) - 1 then
+                '.'
+            else
+                prevLine.[i + 1]
+        in
+        if (leftTile = '^' && centerTile = '^' && rightTile = '.') ||
+           (leftTile = '.' && centerTile = '^' && rightTile = '^') ||
+           (leftTile = '^' && centerTile = '.' && rightTile = '.') ||
+           (leftTile = '.' && centerTile = '.' && rightTile = '^') then
+            '^'
+        else
+            '.'
+    in
+    String.mapi generateTile prevLine
 ;;
 
 [<EntryPoint>]
