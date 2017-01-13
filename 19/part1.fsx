@@ -37,10 +37,16 @@ let stealUntilDone startingNumElves =
                     (nextElvesSoFar, nextElvesSoFarLength, numTraversed + 1)
             ) elvesStartingRound ([], 0, 0)
     in
+    let rec runUntilOne elves numElves =
+        //let _ = printfn "runUntilOne %d - %A" numElves (List.map (fun elf -> (elf.id, elf.presents)) elves) in
+        if numElves = 1 then
+            (List.head elves)
+        else
+            let (nextElves, nextElvesLength, _) = runRound elves numElves in
+            runUntilOne nextElves nextElvesLength
+    in
     let initialElves = List.ofSeq (seq { for id in 1 .. startingNumElves -> { id = id; presents = 1 } }) in
-    let (nextElves, nextElvesLength, numTraversed) = runRound initialElves startingNumElves in
-    let _ = printfn "after round: %A" (List.map (fun elf -> (elf.id, elf.presents)) nextElves) in
-    List.head initialElves
+    runUntilOne initialElves startingNumElves
 ;;
 
 [<EntryPoint>]
@@ -49,7 +55,7 @@ let main argv =
     | [| numElvesStr |] ->
         let numElves = Convert.ToInt32(numElvesStr) in
         let whichElf = stealUntilDone numElves in
-        printfn "elf %d has it" whichElf.id
+        printfn "elf %A has it" whichElf
     | _ -> printfn "need num elves"
     0
 ;;
